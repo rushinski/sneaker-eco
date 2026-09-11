@@ -726,7 +726,6 @@ Create a GitHub release from the verified `main` commit:
 ```powershell
 gh release create v1.2.3 --target main --generate-notes
 ```
-````
 
 The production workflow rejects noncanonical versions and tags outside `main` history. Never move or rewrite a released tag.
 
@@ -737,7 +736,6 @@ GitHub reruns jobs, not steps. From a workflow run, select **Re-run jobs -> Re-r
 If staging fails, do not create a production tag. If production deployment or readiness fails, restore the previously verified deployment from Vercel, retain the failed tag for diagnosis, and ship a new patch version after repair.
 
 The `staging` Git branch is obsolete after the first verified `main` deployment. Deleting it requires a separate explicit confirmation.
-
 ````
 
 - [ ] **Step 3: Run all local verification**
@@ -751,7 +749,7 @@ npm run lint
 npm run typecheck
 npm run build
 git diff --check
-````
+```
 
 Expected: every command exits 0. `npm run build` uses the developer's existing development-only Doppler authentication; it is not production evidence.
 
