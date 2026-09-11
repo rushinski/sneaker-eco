@@ -56,7 +56,7 @@ function getRedis(): Redis {
 }
 
 function getLimiter(bucket: string, maxRequests: number, window: string): Ratelimit {
-  const envLabel = env.NODE_ENV ?? "unknown";
+  const envLabel = process.env.NODE_ENV ?? "unknown";
   const cacheKey = `${envLabel}:${bucket}:${maxRequests}:${window}`;
 
   const cached = limiterCache.get(cacheKey);

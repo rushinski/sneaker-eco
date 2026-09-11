@@ -1,25 +1,8 @@
-// app/checkout/page.tsx
-import { redirect } from "next/navigation";
-
-import { CheckoutLockedNotice } from "@/components/checkout/CheckoutLockedNotice";
-import { getServerSession } from "@/lib/auth/session";
-import { getStoreAccessSettings } from "@/lib/store-access/get-store-access-settings";
-import { CheckoutGate } from "@/components/checkout/CheckoutGate";
-
-export const dynamic = "force-dynamic";
-
-export default async function CheckoutGatePage() {
-  const storeAccess = await getStoreAccessSettings();
-  if (storeAccess?.settings.checkoutLockEnabled) {
-    return <CheckoutLockedNotice message={storeAccess.settings.checkoutLockMessage} />;
-  }
-
-  const session = await getServerSession();
-  const user = session?.user ?? null;
-
-  if (user) {
-    redirect("/checkout/start");
-  }
-
-  return <CheckoutGate />;
+export default function CheckoutPage() {
+  return (
+    <main className="mx-auto max-w-2xl px-4 py-20 text-center">
+      <h1 className="text-3xl font-bold text-white">Checkout is currently unavailable</h1>
+      <p className="mt-4 text-gray-400">You can continue browsing and updating your cart.</p>
+    </main>
+  );
 }

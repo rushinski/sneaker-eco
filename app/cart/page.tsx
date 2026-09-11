@@ -5,7 +5,6 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import Script from "next/script";
 import { Minus, Plus, Trash2, ShoppingCart } from "lucide-react";
 
 import { useCart } from "@/components/cart/CartProvider";
@@ -17,8 +16,6 @@ export default function CartPage() {
   const handleCheckout = () => {
     router.push("/checkout");
   };
-
-  const nofraudCode = process.env.NEXT_PUBLIC_NOFRAUD_CUSTOMER_CODE;
 
   if (items.length === 0) {
     return (
@@ -41,14 +38,7 @@ export default function CartPage() {
   }
 
   return (
-    <>
-      {nofraudCode && (
-        <Script
-          src={`https://services.nofraud.com/js/${nofraudCode}/customer_code.js`}
-          strategy="afterInteractive"
-        />
-      )}
-      <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
+    <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
         <h1 className="text-2xl sm:text-4xl font-bold text-white mb-6 sm:mb-8">
           Shopping Cart
         </h1>
@@ -152,11 +142,11 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between text-gray-400">
                   <span>Shipping</span>
-                  <span>Calculated at checkout</span>
+                  <span>Unavailable</span>
                 </div>
                 <div className="flex justify-between text-gray-400">
                   <span>Tax</span>
-                  <span>Calculated at checkout</span>
+                  <span>Unavailable</span>
                 </div>
                 <div className="border-t border-zinc-800/70 pt-3">
                   <div className="flex justify-between text-lg sm:text-xl font-bold text-white">
@@ -170,7 +160,7 @@ export default function CartPage() {
                 onClick={handleCheckout}
                 className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 sm:py-3 rounded transition mb-3 text-sm sm:text-base"
               >
-                Proceed to Checkout
+                Checkout unavailable
               </button>
 
               <Link
@@ -182,7 +172,6 @@ export default function CartPage() {
             </div>
           </div>
         </div>
-      </div>
-    </>
+    </div>
   );
 }
