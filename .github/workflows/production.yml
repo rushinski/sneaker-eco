@@ -3,7 +3,7 @@ name: Production CI
 on:
   push:
     tags:
-      - 'v*.*.*'  # Triggers on version tags like v1.0.0, v2.1.3, etc.
+      - "v*.*.*" # Triggers on version tags like v1.0.0, v2.1.3, etc.
 
 jobs:
   validate-and-deploy:
@@ -17,76 +17,21 @@ jobs:
         ports:
           - 5432:5432
         env:
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    env:
-      # Vercel
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }} 
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PRODUCTION_PROJECT_ID }}
 
-      # Supabase
+      NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-
-      # Shippo
-      SHIPPO_API_TOKEN: ${{ secrets.SHIPPO_API_TOKEN }}
-      SHIPPO_WEBHOOK_TOKEN: ${{ secrets.SHIPPO_WEBHOOK_TOKEN }}
-
-      # Upstash Redis
       UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
       UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
-
-      # Auth
       ADMIN_SESSION_SECRET: ${{ secrets.ADMIN_SESSION_SECRET }}
-      ORDER_ACCESS_TOKEN_SECRET: ${{ secrets.ORDER_ACCESS_TOKEN_SECRET }}
-
-      # Google OAuth
-      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-
-      # AWS SES
-      SES_SMTP_HOST: ${{ secrets.SES_SMTP_HOST }}
-      SES_SMTP_USER: ${{ secrets.SES_SMTP_USER }}
-      SES_SMTP_PASS: ${{ secrets.SES_SMTP_PASS }}
-      SES_FROM_EMAIL: ${{ secrets.SES_FROM_EMAIL }}
-      SES_FROM_NAME: ${{ secrets.SES_FROM_NAME }}
-      SUPPORT_INBOX_EMAIL: ${{ secrets.SUPPORT_INBOX_EMAIL }}
-
-      # AWS
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-      # HERE 
-      HERE_MAPS_API_KEY: ${{ secrets.HERE_MAPS_API_KEY }}
-
-      PAYRILLA_API_URL: ${{ secrets.PAYRILLA_API_URL }}
-      PAYRILLA_SOURCE_KEY: ${{ secrets.PAYRILLA_SOURCE_KEY }}
-      PAYRILLA_PIN: ${{ secrets.PAYRILLA_PIN }}
-      PAYRILLA_TOKEN: ${{ secrets.PAYRILLA_TOKEN }}
-      PAYRILLA_WEBHOOK: ${{ secrets.PAYRILLA_WEBHOOK }}
-      NEXT_PUBLIC_PAYRILLA_TOKENIZATION_URL: ${{ secrets.NEXT_PUBLIC_PAYRILLA_TOKENIZATION_URL }}
-
-      NOFRAUD_API_KEY: ${{ secrets.NOFRAUD_API_KEY }}
-      NEXT_PUBLIC_NOFRAUD_CUSTOMER_CODE: ${{ secrets.NEXT_PUBLIC_NOFRAUD_CUSTOMER_CODE}}
-      ZIPTAX_API_KEY: ${{ secrets.ZIPTAX_API_KEY }}
-
-      # Public Config (can use variables instead of secrets)
-      NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
-      NEXT_PUBLIC_GUEST_CHECKOUT_ENABLED: ${{ vars.NEXT_PUBLIC_GUEST_CHECKOUT_ENABLED || 'true' }}
-
       LIGHTSPEED_ACCESS_TOKEN: ${{ secrets.LIGHTSPEED_ACCESS_TOKEN }}
       LIGHTSPEED_DOMAIN_PREFIX: ${{ secrets.LIGHTSPEED_DOMAIN_PREFIX }}
 
-      # Local DB for validation
       LOCAL_SUPABASE_DB_URL: "postgresql://postgres:postgres@localhost:5432/postgres"
 
     steps:

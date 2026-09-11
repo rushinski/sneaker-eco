@@ -1,8 +1,6 @@
 // app/(main)/contact/page.tsx
 import Image from "next/image";
 
-import { ContactForm } from "@/components/contact/ContactForm";
-
 export default function ContactPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 pt-8 pb-16">
@@ -13,11 +11,7 @@ export default function ContactPage() {
           want? Reach out. We&apos;re always buying.
         </p>
         <p>
-          You can contact us through{" "}
-          <a href="#contact-form" className="text-red-400 hover:underline">
-            this contact form
-          </a>
-          , the{" "}
+          You can contact us through the{" "}
           <a href="/account" className="text-red-400 hover:underline">
             onsite messaging system
           </a>
@@ -48,12 +42,7 @@ export default function ContactPage() {
         <p>Have questions or need anything else? Feel free to reach out.</p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-12 items-stretch">
-        {/* Contact Form */}
-        <div className="h-full">
-          <ContactForm source="contact_form" />
-        </div>
-
+      <div className="mx-auto max-w-2xl">
         <div className="hidden md:block">
           {/* Image stack (matches the reference orientation) */}
           <div className="relative h-full min-h-[420px] overflow-visible">

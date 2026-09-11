@@ -112,25 +112,6 @@ type VariantWithProduct = {
   };
 };
 
-type CheckoutProductRow = {
-  id: string;
-  name: string;
-  brand: string;
-  model: string | null;
-  category: string;
-  condition: string;
-  tenant_id: string | null;
-  shipping_price_cents: number | null;
-  variants?: Array<{
-    id: string;
-    sku: string;
-    size_label: string;
-    sale_price_cents: number;
-    unit_cost_cents: number;
-    stock: number;
-  }>;
-};
-
 type CartVariantRow = {
   id: string;
   product_id: string;
@@ -515,9 +496,9 @@ export class ProductRepository {
 
     let products = ids.map((id) => byId.get(id)).filter(Boolean) as ProductWithDetails[];
 
-      return {
-        products,
-        total,
+    return {
+      products,
+      total,
       skuTotal,
       inventoryUnitTotal,
       page,
@@ -1433,10 +1414,10 @@ export class ProductRepository {
    * Higher scores indicate better matches.
    */
   private calculateSearchRelevance(
-      product: Pick<ProductRow, "brand" | "name" | "model"> | SearchCandidateRow,
-      searchQuery: string | undefined,
-      searchFields: string[],
-    ): number {
+    product: Pick<ProductRow, "brand" | "name" | "model"> | SearchCandidateRow,
+    searchQuery: string | undefined,
+    searchFields: string[],
+  ): number {
     if (!searchQuery?.trim()) {
       return 0;
     }
@@ -1449,11 +1430,11 @@ export class ProductRepository {
 
     let score = 0;
 
-      // Helper to get field values
-      const getFieldValue = (field: string): string => {
-        const value = product[field as keyof typeof product];
-        return String(value ?? "").toLowerCase();
-      };
+    // Helper to get field values
+    const getFieldValue = (field: string): string => {
+      const value = product[field as keyof typeof product];
+      return String(value ?? "").toLowerCase();
+    };
 
     // Check each search field
     for (const field of searchFields) {
@@ -1714,63 +1695,6 @@ export class ProductRepository {
     }
 
     return Array.from(productIds);
-  }
-
-  async getProductsForCheckout(productIds: string[]): Promise<
-    Array<{
-      id: string;
-      name: string;
-      brand: string;
-      model: string | null;
-      titleDisplay: string;
-      category: string;
-      condition: string;
-      tenantId: string | null;
-      shippingPriceCents: number | null;
-      variants: Array<{
-        id: string;
-        sku: string;
-        sizeLabel: string;
-        salePriceCents: number;
-        unitCostCents: number;
-        stock: number;
-      }>;
-    }>
-  > {
-    const nowIso = new Date().toISOString();
-    const { data, error } = await this.supabase
-      .from("products")
-      .select(
-        "id, name, brand, model, category, condition, tenant_id, shipping_price_cents, variants:product_variants(id, sku, size_label, sale_price_cents, unit_cost_cents, stock)",
-      )
-      .in("id", productIds)
-      .eq("is_active", true)
-      .eq("is_out_of_stock", false)
-      .lte("go_live_at", nowIso);
-
-    if (error) {
-      throw error;
-    }
-
-    return (data ?? []).map((p: CheckoutProductRow) => ({
-      id: p.id,
-      name: p.name,
-      brand: p.brand,
-      model: p.model ?? null,
-      titleDisplay: p.name,
-      category: p.category,
-      condition: p.condition,
-      tenantId: p.tenant_id ?? null,
-      shippingPriceCents: p.shipping_price_cents ?? null,
-      variants: (p.variants ?? []).map((v) => ({
-        id: v.id,
-        sku: v.sku,
-        sizeLabel: v.size_label,
-        salePriceCents: v.sale_price_cents,
-        unitCostCents: v.unit_cost_cents,
-        stock: v.stock,
-      })),
-    }));
   }
 
   async getVariantsForCart(variantIds: string[]): Promise<CartVariantDetails[]> {

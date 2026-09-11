@@ -13,6 +13,7 @@ import { NexusRepository } from "@/repositories/nexus-repo";
 const nexusTypeSchema = z.object({
   stateCode: z.string().length(2),
   nexusType: z.enum(["physical", "economic"]),
+  isRegistered: z.boolean(),
 });
 
 export async function POST(request: NextRequest) {
@@ -36,14 +37,11 @@ export async function POST(request: NextRequest) {
     }
 
     const nexusRepo = new NexusRepository(supabase);
-    const existing = await nexusRepo.getRegistration(tenantId, parsed.data.stateCode);
-
     await nexusRepo.upsertRegistration({
       tenantId,
       stateCode: parsed.data.stateCode,
       registrationType: parsed.data.nexusType,
-      isRegistered: existing?.is_registered ?? false,
-      registeredAt: existing?.registered_at ?? null,
+      isRegistered: parsed.data.isRegistered,
     });
 
     return NextResponse.json({ success: true });

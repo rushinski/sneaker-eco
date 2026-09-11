@@ -8,11 +8,10 @@ import { logError } from "@/lib/utils/log";
 
 type AdminNotification = {
   id: string;
-  type: "order_placed" | "chat_message";
+  type: "chat_message";
   message: string;
   created_at: string;
   read_at: string | null;
-  order_id?: string | null;
   chat_id?: string | null;
 };
 
@@ -25,9 +24,6 @@ const formatTime = (value: string) => {
 };
 
 const getNotificationHref = (n: AdminNotification) => {
-  if (n.type === "order_placed" && n.order_id) {
-    return "/admin/sales";
-  }
   if (n.chat_id) {
     return `/admin/chats?chatId=${n.chat_id}`;
   }

@@ -5,7 +5,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/session";
 import { CatalogRepository } from "@/repositories/catalog-repo";
 import { ProductService } from "@/services/product-service";
-import { ShippingDefaultsService } from "@/services/shipping-defaults-service";
 import { ensureTenantId } from "@/lib/auth/tenant";
 
 export async function getEditFormInitialData(productId: string) {
@@ -16,23 +15,18 @@ export async function getEditFormInitialData(productId: string) {
 
     const productService = new ProductService(supabase);
     const catalogRepo = new CatalogRepository(supabase);
-    const shippingDefaultsService = new ShippingDefaultsService(supabase);
-
-    // Fetch product, shipping defaults, and brands in parallel using direct service calls
-    const [product, shippingDefaults, brandsData] = await Promise.all([
+    const [product, brandsData] = await Promise.all([
       productService.getProductById(productId, {
         tenantId,
         includeOutOfStock: true,
         includeUnpublished: true,
         archivedStatus: "all",
       }),
-      shippingDefaultsService.list(tenantId),
       catalogRepo.listBrandsWithGroups(tenantId),
     ]);
 
     return {
       product,
-      shippingDefaults: shippingDefaults || [],
       brands: brandsData.map(
         (brand: {
           id: string;

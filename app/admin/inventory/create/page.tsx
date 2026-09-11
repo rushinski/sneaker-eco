@@ -27,10 +27,7 @@ export default async function CreateProductPage() {
         </div>
       </div>
 
-      <CreateProductClient
-        initialShippingDefaults={initialData.shippingDefaults}
-        initialBrands={initialData.brands}
-      />
+      <CreateProductClient initialBrands={initialData.brands} />
     </div>
   );
 }

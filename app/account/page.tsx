@@ -16,9 +16,7 @@ export default async function AccountPage() {
         <h1 className="text-3xl font-bold text-white mb-4">
           Sign in to view your account
         </h1>
-        <p className="text-gray-400 mb-8">
-          Access your profile, shipping info, and order history
-        </p>
+        <p className="text-gray-400 mb-8">Access your profile and account settings</p>
         <div className="flex gap-4 justify-center">
           <Link
             href="/auth/login"

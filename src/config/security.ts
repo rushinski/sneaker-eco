@@ -5,16 +5,6 @@ const prodConnectSrc = [
   "'self'",
   "https://*.supabase.co",
   "wss://*.supabase.co",
-  "https://api.goshippo.com",
-  "https://vitals.vercel-insights.com",
-  "https://*.vercel-scripts.com",
-  // PayRilla payment gateway!
-  "https://api.payrillagateway.com",
-  "https://api.sandbox.payrillagateway.com",
-  // NoFraud device fingerprinting beacon
-  "https://*.nofraud.com",
-  // Google Pay JS API
-  "https://pay.google.com",
 
   // ✅ only when explicitly enabled (for local prod-mode testing)
   ...(allowLocalSupabaseInProd
@@ -28,18 +18,6 @@ const prodConnectSrc = [
 ].join(" ");
 
 export const security = {
-  contact: {
-    rateLimit: {
-      maxRequests: 5,
-      window: "10 m",
-      blockStatus: 429,
-    },
-    attachments: {
-      maxFiles: 5,
-      maxBytes: 5 * 1024 * 1024,
-      allowedTypes: ["image/jpeg", "image/png", "image/webp"],
-    },
-  },
   proxy: {
     requestIdHeader: "x-request-id",
     botCheckPrefixes: ["/admin", "/api", "/auth", "/products", "/store"],
@@ -91,12 +69,7 @@ export const security = {
       unsafeMethods: ["POST", "PUT", "PATCH", "DELETE"] as const,
       maxOriginLength: 512,
 
-      bypassPrefixes: [
-        "/api/webhooks/lightspeed",
-        "/api/webhooks/payrilla",
-        "/api/webhooks/shippo",
-        "/api/auth/2fa/challenge/verify",
-      ],
+      bypassPrefixes: ["/api/auth/2fa/challenge/verify"],
     },
 
     rateLimit: {
@@ -131,8 +104,8 @@ export const security = {
         dev: [
           "default-src 'self'",
           "img-src 'self' data: https: blob:",
-          "style-src 'self' 'unsafe-inline' https://*.payrillagateway.com",
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vercel-scripts.com https://*.payrillagateway.com https://services.nofraud.com https://pay.google.com",
+          "style-src 'self' 'unsafe-inline'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
           "worker-src 'self' blob:",
           [
             "connect-src",
@@ -140,23 +113,21 @@ export const security = {
             "ws://localhost:*",
             "http://localhost:*",
             "http://127.0.0.1:*",
-            "https://*.nofraud.com",
-            "https://pay.google.com",
             "https:",
           ].join(" "),
           "object-src 'none'",
           "base-uri 'self'",
           "frame-ancestors 'none'",
           "font-src 'self' data:",
-          "frame-src 'self' blob: https://*.payrillagateway.com https://www.openstreetmap.org https://*.openstreetmap.org",
+          "frame-src 'self' blob: https://www.openstreetmap.org https://*.openstreetmap.org",
           "form-action 'self'",
         ],
 
         prod: [
           "default-src 'self'",
-          "img-src 'self' data: blob: https://*.supabase.co https://*.openstreetmap.org https://*.cloudfront.net https://*.fastly.net https://cdn.shoplightspeed.com",
-          "style-src 'self' 'unsafe-inline' https://*.payrillagateway.com",
-          "script-src 'self' 'unsafe-inline' https://*.vercel-scripts.com https://*.payrillagateway.com https://services.nofraud.com https://pay.google.com",
+          "img-src 'self' data: blob: https://*.supabase.co https://*.openstreetmap.org https://*.cloudfront.net https://*.fastly.net",
+          "style-src 'self' 'unsafe-inline'",
+          "script-src 'self' 'unsafe-inline'",
           "worker-src 'self' blob:",
           "object-src 'none'",
           "base-uri 'self'",
@@ -165,7 +136,7 @@ export const security = {
 
           "frame-ancestors 'none'",
           "font-src 'self' data:",
-          "frame-src 'self' blob: https://*.payrillagateway.com https://www.openstreetmap.org https://*.openstreetmap.org",
+          "frame-src 'self' blob: https://www.openstreetmap.org https://*.openstreetmap.org",
           "form-action 'self'",
         ],
       },

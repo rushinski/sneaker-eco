@@ -39,13 +39,6 @@ interface ProductFormProps {
   onSubmit: (data: ProductCreateInput) => Promise<void>;
   onCancel: () => void;
 
-  // NEW: Server-side data props
-  initialShippingDefaults?: Array<{
-    category: string;
-    shipping_cost_cents?: number;
-    default_price_cents?: number;
-    default_price?: number;
-  }>;
   initialBrands?: Array<{
     id: string;
     label: string;
@@ -250,7 +243,6 @@ export function ProductForm({
   initialData,
   onSubmit,
   onCancel,
-  initialShippingDefaults, // NEW
   initialBrands, // NEW
 }: ProductFormProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -288,14 +280,6 @@ export function ProductForm({
     toDateTimeLocalValue(initialData?.go_live_at),
   );
 
-  const [shippingPrice, setShippingPrice] = useState(() => {
-    const shippingPriceCents = initialData?.shipping_price_cents;
-    if (shippingPriceCents !== null && shippingPriceCents !== undefined) {
-      return formatMoney(shippingPriceCents / 100);
-    }
-    return "";
-  });
-
   const [uploadQueue, setUploadQueue] = useState<{
     total: number;
     completed: number;
@@ -308,31 +292,6 @@ export function ProductForm({
     failed: 0,
     isUploading: false,
   });
-
-  // UPDATED: Use server data to initialize shipping defaults
-  const [shippingDefaults, setShippingDefaults] = useState<Record<string, number>>(() => {
-    if (!initialShippingDefaults) {
-      return {};
-    }
-
-    const map: Record<string, number> = {};
-    for (const entry of initialShippingDefaults) {
-      const cents =
-        Number(
-          entry.shipping_cost_cents ??
-            entry.default_price_cents ??
-            entry.default_price ??
-            0,
-        ) || 0;
-      map[entry.category] = cents / 100;
-    }
-    return map;
-  });
-
-  // UPDATED: Start as ready if server data provided
-  const [shippingDefaultsStatus, setShippingDefaultsStatus] = useState<
-    "loading" | "ready" | "error"
-  >(initialShippingDefaults ? "ready" : "loading");
 
   const [customTags, setCustomTags] = useState<TagChip[]>(() => {
     const tags = initialData?.tags ?? [];
@@ -395,7 +354,6 @@ export function ProductForm({
     () => variants.map((variant) => variant.draft_id),
     [variants],
   );
-  const defaultShippingPrice = shippingDefaults[category] ?? 0;
   const scheduleMin = useMemo(() => toDateTimeLocalValue(new Date().toISOString()), []);
   const variantDragSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -502,46 +460,6 @@ export function ProductForm({
       return true;
     });
   }, [visibleAutoTags, customTags]);
-
-  // OPTIMIZATION: Memoize shipping defaults loader
-  const loadShippingDefaults = useCallback(async () => {
-    setShippingDefaultsStatus("loading");
-    try {
-      const response = await fetch("/api/admin/shipping/defaults");
-      const data = await response.json();
-
-      if (response.ok && data?.defaults) {
-        const map: Record<string, number> = {};
-        for (const entry of data.defaults) {
-          const cents =
-            Number(
-              entry.shipping_cost_cents ??
-                entry.default_price_cents ??
-                entry.default_price ??
-                0,
-            ) || 0;
-          map[entry.category] = cents / 100;
-        }
-        setShippingDefaults(map);
-        setShippingDefaultsStatus("ready");
-        return;
-      }
-
-      setShippingDefaultsStatus("error");
-    } catch (error) {
-      logError(error, { layer: "frontend", event: "inventory_load_shipping_defaults" });
-      setShippingDefaultsStatus("error");
-    }
-  }, []);
-
-  // UPDATED: Skip loading if data already provided from server
-  useEffect(() => {
-    if (initialShippingDefaults) {
-      // Data already loaded from server
-      return;
-    }
-    loadShippingDefaults();
-  }, [initialShippingDefaults, loadShippingDefaults]);
 
   // OPTIMIZATION: Memoize brand catalog loader
   const loadBrands = useCallback(async () => {
@@ -1187,12 +1105,6 @@ export function ProductForm({
         throw new Error("Full title is required.");
       }
 
-      const trimmedShipping = shippingPrice.trim();
-      const shippingCents = trimmedShipping ? parseMoneyToCents(trimmedShipping) : null;
-      if (trimmedShipping && shippingCents === null) {
-        throw new Error("Please enter a valid shipping price.");
-      }
-
       const seenSizeKeys = new Set<string>();
       const preparedVariants = variants.map((variant, index) => {
         const priceCents = parseMoneyToCents(variant.salePrice);
@@ -1265,7 +1177,6 @@ export function ProductForm({
         condition,
         size_type: sizeType,
         description: description || undefined,
-        shipping_price_cents: shippingCents,
         go_live_at: goLiveAt,
         variants: preparedVariants,
         images: preparedImages,
@@ -1834,37 +1745,6 @@ export function ProductForm({
 
         <div className="mt-2 md:mt-3 text-xs text-gray-500">
           Images are optional. Tap any thumbnail to set as primary.
-        </div>
-      </div>
-
-      {/* Pricing & Shipping - Simplified */}
-      <div className="bg-zinc-900 border border-zinc-800/70 rounded p-4 md:p-6">
-        <h2 className="text-lg md:text-xl font-semibold text-white mb-3 md:mb-4">
-          Pricing & Shipping
-        </h2>
-
-        <div>
-          <label className="block text-gray-400 text-sm mb-1">Shipping Price ($)</label>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={shippingPrice}
-            onChange={(e) => setShippingPrice(e.target.value)}
-            className="w-full bg-zinc-800 text-white px-3 md:px-4 py-2 rounded border border-zinc-800/70 focus:outline-none focus:ring-2 focus:ring-red-600 text-sm md:text-base"
-          />
-
-          {shippingDefaultsStatus === "loading" ? (
-            <p className="text-gray-500 text-xs mt-1">Loading default shipping prices…</p>
-          ) : shippingDefaultsStatus === "error" ? (
-            <p className="text-red-400 text-xs mt-1">
-              Could not load defaults. You can still set an override.
-            </p>
-          ) : (
-            <p className="text-gray-500 text-xs mt-1">
-              Leave blank to use {category} default:{" "}
-              <span className="text-gray-200">${formatMoney(defaultShippingPrice)}</span>
-            </p>
-          )}
         </div>
       </div>
 

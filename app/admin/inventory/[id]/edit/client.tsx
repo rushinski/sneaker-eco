@@ -11,12 +11,6 @@ interface EditProductClientProps {
   productId: string;
   product: ProductWithDetails;
   isArchived?: boolean;
-  initialShippingDefaults: Array<{
-    category: string;
-    shipping_cost_cents?: number;
-    default_price_cents?: number;
-    default_price?: number;
-  }>;
   initialBrands: Array<{
     id: string;
     label: string;
@@ -28,7 +22,6 @@ export function EditProductClient({
   productId,
   product,
   isArchived = false,
-  initialShippingDefaults,
   initialBrands,
 }: EditProductClientProps) {
   const router = useRouter();
@@ -90,7 +83,6 @@ export function EditProductClient({
     condition: product.condition,
     description: product.description || undefined,
     size_type: product.size_type,
-    shipping_price_cents: product.shipping_price_cents ?? null,
     go_live_at: product.go_live_at ?? undefined,
     variants: product.variants,
     images: product.images,
@@ -134,7 +126,6 @@ export function EditProductClient({
       initialData={initialData}
       onSubmit={handleSubmit}
       onCancel={handleCancel}
-      initialShippingDefaults={initialShippingDefaults}
       initialBrands={initialBrands}
     />
   );

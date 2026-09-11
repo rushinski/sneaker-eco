@@ -9,7 +9,6 @@ import {
   Bell,
   LayoutDashboard,
   Package,
-  Truck,
   BarChart3,
   Settings,
   MessageCircle,
@@ -41,7 +40,7 @@ type NavGroupItem = {
   type: "group";
   label: string;
   icon: LucideIcon;
-  groupKey: "analytics" | "orders" | "settings";
+  groupKey: "analytics" | "settings";
   isActive: (pathname: string) => boolean;
   children: Array<{ href: string; label: string }>;
 };
@@ -61,28 +60,9 @@ const navItems: Array<NavLinkItem | NavGroupItem> = [
     icon: BarChart3,
     groupKey: "analytics",
     isActive: (pathname: string) => pathname.startsWith("/admin/analytics"),
-    children: [
-      { href: "/admin/analytics/traffic", label: "Traffic" },
-      { href: "/admin/analytics/financials", label: "Financials" },
-    ],
+    children: [{ href: "/admin/analytics/traffic", label: "Traffic" }],
   },
-  {
-    type: "group",
-    label: "Activity",
-    icon: Truck,
-    groupKey: "orders",
-    isActive: (pathname: string) =>
-      pathname.startsWith("/admin/transactions") ||
-      pathname.startsWith("/admin/customers") ||
-      pathname.startsWith("/admin/shipping") ||
-      pathname.startsWith("/admin/pickups"),
-    children: [
-      { href: "/admin/transactions", label: "Transactions" },
-      { href: "/admin/customers", label: "Customers" },
-      { href: "/admin/shipping", label: "Shipping" },
-      { href: "/admin/pickups", label: "Pickups" },
-    ],
-  },
+  { type: "link", href: "/admin/customers", label: "Customers", icon: User },
   { type: "link", href: "/admin/bank", label: "Bank", icon: Landmark },
   { type: "link", href: "/admin/nexus", label: "Tax & Nexus", icon: Receipt },
   { type: "link", href: "/admin/featured-items", label: "Featured Items", icon: Star }, // ADD THIS LINE
@@ -94,10 +74,7 @@ const navItems: Array<NavLinkItem | NavGroupItem> = [
     groupKey: "settings",
     isActive: (pathname: string) => pathname.startsWith("/admin/settings"),
     children: [
-      { href: "/admin/settings/lightspeed", label: "Lightspeed" },
       { href: "/admin/settings/store-access", label: "Store Access" },
-      { href: "/admin/settings/shipping", label: "Shipping" },
-      { href: "/admin/settings/taxes", label: "Taxes" },
       { href: "/admin/settings/transfers", label: "Bank" },
     ],
   },
@@ -118,15 +95,9 @@ export function AdminSidebar({
   const pathname = usePathname();
 
   const analyticsActive = pathname.startsWith("/admin/analytics");
-  const ordersActive =
-    pathname.startsWith("/admin/transactions") ||
-    pathname.startsWith("/admin/customers") ||
-    pathname.startsWith("/admin/shipping") ||
-    pathname.startsWith("/admin/pickups");
   const settingsActive = pathname.startsWith("/admin/settings");
   const [openGroups, setOpenGroups] = useState({
     analytics: false,
-    orders: false,
     settings: false,
   });
 
@@ -180,13 +151,10 @@ export function AdminSidebar({
     if (analyticsActive) {
       setOpenGroups((prev) => ({ ...prev, analytics: true }));
     }
-    if (ordersActive) {
-      setOpenGroups((prev) => ({ ...prev, orders: true }));
-    }
     if (settingsActive) {
       setOpenGroups((prev) => ({ ...prev, settings: true }));
     }
-  }, [analyticsActive, ordersActive, settingsActive]);
+  }, [analyticsActive, settingsActive]);
 
   useEffect(() => {
     let isActive = true;

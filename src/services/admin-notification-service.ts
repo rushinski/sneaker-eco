@@ -12,22 +12,6 @@ export class AdminNotificationService {
     this.profilesRepo = new ProfileRepository(supabase);
   }
 
-  async notifyOrderPlaced(orderId: string) {
-    const staff = await this.profilesRepo.listStaffProfiles();
-    const recipients = staff.filter(
-      (admin) => admin.admin_order_notifications_enabled !== false,
-    );
-
-    const rows = recipients.map((admin) => ({
-      admin_id: admin.id,
-      type: "order_placed",
-      message: `New order #${orderId.slice(0, 8)} placed`,
-      order_id: orderId,
-    }));
-
-    await this.notificationsRepo.insertMany(rows);
-  }
-
   async notifyChatMessage(
     chatId: string,
     messagePreview: string,

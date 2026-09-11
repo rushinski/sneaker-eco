@@ -37,51 +37,16 @@ export class ChatsRepository {
     return data;
   }
 
-  async createChat(input: {
-    userId?: string | null;
-    orderId?: string | null;
-    source: "manual" | "order";
-    guestEmail?: string | null;
-  }): Promise<ChatRow> {
+  async createChat(userId: string): Promise<ChatRow> {
     const insert: ChatInsert = {
-      user_id: input.userId ?? null,
-      order_id: input.orderId ?? null,
-      guest_email: input.guestEmail ?? null,
-      source: input.source,
+      user_id: userId,
+      source: "manual",
       status: "open",
     };
 
     const { data, error } = await this.supabase
       .from("chats")
       .insert(insert)
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-    return data as ChatRow;
-  }
-
-  async getByOrderId(orderId: string): Promise<ChatRow | null> {
-    const { data, error } = await this.supabase
-      .from("chats")
-      .select("*")
-      .eq("order_id", orderId)
-      .order("created_at", { ascending: false })
-      .maybeSingle();
-
-    if (error) {
-      throw error;
-    }
-    return data;
-  }
-
-  async updateGuestEmail(chatId: string, guestEmail: string | null): Promise<ChatRow> {
-    const { data, error } = await this.supabase
-      .from("chats")
-      .update({ guest_email: guestEmail })
-      .eq("id", chatId)
       .select()
       .single();
 

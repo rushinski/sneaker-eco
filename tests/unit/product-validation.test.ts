@@ -8,7 +8,6 @@ describe("productCreateSchema", () => {
       condition: "used",
       size_type: "shoe",
       description: "No photos yet",
-      shipping_price_cents: 1500,
       variants: [
         {
           sku: "123456",

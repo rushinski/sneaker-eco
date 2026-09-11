@@ -105,7 +105,6 @@ export class ProfileRepository {
     userId: string,
     input: {
       chat_notifications_enabled?: boolean;
-      admin_order_notifications_enabled?: boolean;
     },
   ) {
     const { error } = await this.supabase.from("profiles").update(input).eq("id", userId);
@@ -117,41 +116,13 @@ export class ProfileRepository {
   async listStaffProfiles() {
     const { data, error } = await this.supabase
       .from("profiles")
-      .select(
-        "id, email, role, tenant_id, chat_notifications_enabled, admin_order_notifications_enabled",
-      )
+      .select("id, email, role, tenant_id, chat_notifications_enabled")
       .in("role", ADMIN_ROLES as unknown as string[]);
 
     if (error) {
       throw error;
     }
     return data ?? [];
-  }
-
-  async getPayrillaAccountIdForTenant(tenantId: string): Promise<string | null> {
-    const { data, error } = await this.supabase
-      .from("profiles")
-      .select("payrilla_account_id, is_primary_admin")
-      .eq("tenant_id", tenantId)
-      .not("payrilla_account_id", "is", null)
-      .order("is_primary_admin", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      throw error;
-    }
-    return data?.payrilla_account_id ?? null;
-  }
-
-  async setPayrillaAccountId(userId: string, payrillaAccountId: string) {
-    const { error } = await this.supabase
-      .from("profiles")
-      .update({ payrilla_account_id: payrillaAccountId })
-      .eq("id", userId);
-    if (error) {
-      throw error;
-    }
   }
 
   async setTenantId(userId: string, tenantId: string) {

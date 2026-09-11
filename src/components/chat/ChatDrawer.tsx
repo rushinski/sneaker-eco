@@ -18,8 +18,6 @@ interface ChatDrawerProps {
 type Chat = {
   id: string;
   status: string;
-  order_id: string | null;
-  source: string;
   created_at: string;
 };
 
@@ -42,11 +40,6 @@ export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [requiresAuth, setRequiresAuth] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [guestAccess, setGuestAccess] = useState<{
-    orderId: string;
-    token: string;
-  } | null>(null);
-  const [isGuestMode, setIsGuestMode] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
   const hasLoadedMessages = useRef(false);
   const lastMessageId = useRef<string | null>(null);
@@ -64,15 +57,9 @@ export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
       setIsMessagesLoading(true);
     }
     try {
-      const guestQuery = guestAccess
-        ? `?orderId=${encodeURIComponent(guestAccess.orderId)}&token=${encodeURIComponent(
-            guestAccess.token,
-          )}`
-        : "";
-      const endpoint = guestAccess
-        ? `/api/chats/guest/${chatId}/messages${guestQuery}`
-        : `/api/chats/${chatId}/messages`;
-      const response = await fetch(endpoint, { cache: "no-store" });
+      const response = await fetch(`/api/chats/${chatId}/messages`, {
+        cache: "no-store",
+      });
       const data = await response.json();
       const nextMessages = data.messages ?? [];
       const nextLast =
@@ -101,42 +88,9 @@ export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
     try {
       // OPTIMIZATION: Use session from context instead of fetching
       if (!user) {
-        let storedAccess: { orderId: string; token: string } | null = null;
-        try {
-          const orderId = sessionStorage.getItem("rdk_guest_order_id");
-          const token = sessionStorage.getItem("rdk_guest_order_token");
-          if (orderId && token) {
-            storedAccess = { orderId, token };
-          }
-        } catch {
-          storedAccess = null;
-        }
-
-        setGuestAccess(storedAccess);
-        if (!storedAccess) {
-          setRequiresAuth(true);
-          setChat(null);
-          setMessages([]);
-          setIsGuestMode(false);
-          return;
-        }
-
-        setRequiresAuth(false);
-        setIsGuestMode(true);
-
-        const response = await fetch(
-          `/api/chats/guest?orderId=${encodeURIComponent(storedAccess.orderId)}&token=${encodeURIComponent(
-            storedAccess.token,
-          )}`,
-          { cache: "no-store" },
-        );
-        const data = await response.json();
-        setChat(data.chat ?? null);
-        if (data.chat?.id) {
-          await loadMessages(data.chat.id, true);
-        } else {
-          setMessages([]);
-        }
+        setRequiresAuth(true);
+        setChat(null);
+        setMessages([]);
         return;
       }
 
@@ -144,14 +98,11 @@ export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
       if (!response.ok) {
         setRequiresAuth(true);
         setChat(null);
-        setIsGuestMode(false);
         return;
       }
 
       const data = await response.json();
       setRequiresAuth(false);
-      setIsGuestMode(false);
-      setGuestAccess(null);
       setChat(data.chat ?? null);
       if (data.chat?.id) {
         await loadMessages(data.chat.id, true);
@@ -224,16 +175,10 @@ export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
     setIsLoading(true);
     setErrorMessage("");
     try {
-      const endpoint = isGuestMode && guestAccess ? "/api/chats/guest" : "/api/chats";
-      const payload =
-        isGuestMode && guestAccess
-          ? { orderId: guestAccess.orderId, token: guestAccess.token }
-          : {};
-
-      const response = await fetch(endpoint, {
+      const response = await fetch("/api/chats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({}),
       });
 
       const data = await response.json();
@@ -261,19 +206,10 @@ export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
     setMessageDraft("");
 
     try {
-      const endpoint =
-        isGuestMode && guestAccess
-          ? `/api/chats/guest/${chat.id}/messages`
-          : `/api/chats/${chat.id}/messages`;
-      const payload =
-        isGuestMode && guestAccess
-          ? { orderId: guestAccess.orderId, token: guestAccess.token, message: body }
-          : { message: body };
-
-      const response = await fetch(endpoint, {
+      const response = await fetch(`/api/chats/${chat.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ message: body }),
       });
 
       const data = await response.json();
@@ -291,19 +227,8 @@ export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
     }
     setConfirmClose(false);
     try {
-      const endpoint =
-        isGuestMode && guestAccess
-          ? `/api/chats/guest/${chat.id}/close`
-          : `/api/chats/${chat.id}/close`;
-      const payload =
-        isGuestMode && guestAccess
-          ? { orderId: guestAccess.orderId, token: guestAccess.token }
-          : null;
-
-      await fetch(endpoint, {
+      await fetch(`/api/chats/${chat.id}/close`, {
         method: "POST",
-        headers: payload ? { "Content-Type": "application/json" } : undefined,
-        body: payload ? JSON.stringify(payload) : undefined,
       });
       setChat(null);
       setMessages([]);
@@ -324,9 +249,7 @@ export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-2xl font-bold text-white">Chat with us</h2>
-              <p className="text-xs text-zinc-500">
-                Pickup timing, questions, and support.
-              </p>
+              <p className="text-xs text-zinc-500">Questions and support.</p>
             </div>
             <button onClick={onClose} className="text-gray-400 hover:text-white">
               <X className="w-6 h-6" />
@@ -444,8 +367,7 @@ export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
           <div className="relative bg-zinc-950 border border-zinc-800/70 p-6 max-w-sm w-full mx-4">
             <h3 className="text-lg font-semibold text-white mb-2">Close this chat?</h3>
             <p className="text-sm text-zinc-400 mb-4">
-              Closing will end the conversation. You can't send new messages unless you
-              sign in again.
+              Closing will end the conversation. You can start a new chat later.
             </p>
             <div className="flex gap-3">
               <button

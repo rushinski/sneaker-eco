@@ -1,15 +1,13 @@
-// app/api/admin/nexus/summary/route.ts
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { STATE_NAMES } from "@/config/constants/nexus-thresholds";
 import { requireAdminApi } from "@/lib/auth/session";
 import { getRequestIdFromHeaders } from "@/lib/http/request-id";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logError } from "@/lib/utils/log";
-import { TenantContextService } from "@/services/tenant-context-service";
 import { NexusRepository } from "@/repositories/nexus-repo";
-import { TaxSettingsRepository } from "@/repositories/tax-settings-repo";
-import { NexusSummaryService } from "@/services/nexus-service";
+import { TenantContextService } from "@/services/tenant-context-service";
 
 export async function GET(request: NextRequest) {
   const requestId = getRequestIdFromHeaders(request.headers);
@@ -17,24 +15,32 @@ export async function GET(request: NextRequest) {
   try {
     const session = await requireAdminApi();
     const supabase = await createSupabaseServerClient();
+    const tenantId = await new TenantContextService(supabase).getTenantId(
+      session.user.id,
+    );
+    const registrations = await new NexusRepository(supabase).getRegistrationsByTenant(
+      tenantId,
+    );
+    const byState = new Map(
+      registrations.map((registration) => [registration.state_code, registration]),
+    );
 
-    const contextService = new TenantContextService(supabase);
-    const context = await contextService.getAdminContext(session.user.id);
+    const states = Object.entries(STATE_NAMES).map(([stateCode, stateName]) => {
+      const registration = byState.get(stateCode);
+      return {
+        stateCode,
+        stateName,
+        nexusType: registration?.registration_type ?? "economic",
+        isRegistered: registration?.is_registered ?? false,
+      };
+    });
 
-    const nexusRepo = new NexusRepository(supabase);
-    const taxSettingsRepo = new TaxSettingsRepository(supabase);
-
-    const summaryService = new NexusSummaryService(nexusRepo, taxSettingsRepo);
-    const summary = await summaryService.buildSummary(context.tenantId);
-
-    return NextResponse.json(summary);
-  } catch (error: unknown) {
+    return NextResponse.json({ states }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
     logError(error, { layer: "api", requestId, route: "/api/admin/nexus/summary" });
-    const message =
-      error instanceof Error ? error.message : "Failed to fetch nexus summary";
     return NextResponse.json(
-      { error: message, requestId },
-      { status: message.includes("not found") ? 404 : 500 },
+      { error: "Failed to fetch nexus settings", requestId },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

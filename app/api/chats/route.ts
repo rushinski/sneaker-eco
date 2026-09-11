@@ -65,10 +65,7 @@ export async function POST(request: NextRequest) {
     const adminSupabase = createSupabaseAdminClient();
     const chatService = new ChatService(supabase, adminSupabase);
 
-    const result = await chatService.createChatForUser({
-      userId: session.user.id,
-      orderId: parsed.data.orderId,
-    });
+    const result = await chatService.createChatForUser(session.user.id);
 
     return NextResponse.json(
       { chat: result.chat, created: result.created },
@@ -82,11 +79,9 @@ export async function POST(request: NextRequest) {
     });
 
     const message = error instanceof Error ? error.message : "Failed to create chat";
-    const status = message.includes("Order") ? 400 : 500;
-
     return NextResponse.json(
       { error: message, requestId },
-      { status, headers: { "Cache-Control": "no-store" } },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

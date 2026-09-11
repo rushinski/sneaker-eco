@@ -4,7 +4,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/session";
 import { CatalogRepository } from "@/repositories/catalog-repo";
-import { ShippingDefaultsService } from "@/services/shipping-defaults-service";
 import { ensureTenantId } from "@/lib/auth/tenant";
 
 export async function getFormInitialData() {
@@ -13,16 +12,9 @@ export async function getFormInitialData() {
   const tenantId = await ensureTenantId(session, supabase);
 
   const catalogRepo = new CatalogRepository(supabase);
-  const shippingDefaultsService = new ShippingDefaultsService(supabase);
-
-  // Fetch shipping defaults and brands in parallel using direct service calls
-  const [shippingDefaults, brandsData] = await Promise.all([
-    shippingDefaultsService.list(tenantId),
-    catalogRepo.listBrandsWithGroups(tenantId),
-  ]);
+  const brandsData = await catalogRepo.listBrandsWithGroups(tenantId);
 
   return {
-    shippingDefaults: shippingDefaults || [],
     brands: brandsData.map((brand) => ({
       id: brand.id,
       label: brand.canonical_label,
