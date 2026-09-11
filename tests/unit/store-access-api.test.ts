@@ -20,7 +20,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureTenantId } from "@/lib/auth/tenant";
 import { StoreAccessSettingsService } from "@/services/store-access-settings-service";
 
-import { GET, POST } from "../../app/api/admin/store-access/route";
+import { GET, POST } from "../../src/app/api/admin/store-access/route";
 
 const mockRequireAdminApi = jest.mocked(requireAdminApi);
 const mockCreateSupabaseServerClient = jest.mocked(createSupabaseServerClient);

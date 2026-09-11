@@ -44,8 +44,8 @@ import { requireAdminApi } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureTenantId } from "@/lib/auth/tenant";
 
-import { PATCH as bulkPatch } from "../../app/api/admin/products/route";
-import { PATCH as itemPatch } from "../../app/api/admin/products/[id]/route";
+import { PATCH as bulkPatch } from "../../src/app/api/admin/products/route";
+import { PATCH as itemPatch } from "../../src/app/api/admin/products/[id]/route";
 
 const mockRequireAdminApi = jest.mocked(requireAdminApi);
 const mockCreateSupabaseServerClient = jest.mocked(createSupabaseServerClient);
