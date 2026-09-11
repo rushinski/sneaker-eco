@@ -26,6 +26,7 @@
 ### Task 1: Verify and enforce proxy site-lock integration
 
 **Files:**
+
 - Modify: proxy entrypoint file that wires `checkSiteLock`
 - Modify: `src/proxy/site-lock.ts`
 - Test: `tests/unit/site-lock-proxy.test.ts`
@@ -61,7 +62,15 @@ if (siteLockResponse) {
 - [ ] **Step 4: Tighten allowlist and admin bypass only where intended**
 
 ```ts
-const allowPrefixes = ["/locked", "/auth", "/admin", "/api/auth", "/api/admin", "/_next", "/images"];
+const allowPrefixes = [
+  "/locked",
+  "/auth",
+  "/admin",
+  "/api/auth",
+  "/api/admin",
+  "/_next",
+  "/images",
+];
 ```
 
 - [ ] **Step 5: Run test to verify it passes**
@@ -79,6 +88,7 @@ git commit -m "fix: enforce site lock in storefront request pipeline"
 ### Task 2: Make `/locked` admin-aware
 
 **Files:**
+
 - Modify: `app/locked/page.tsx`
 - Test: `tests/unit/locked-page.test.tsx`
 
@@ -86,7 +96,9 @@ git commit -m "fix: enforce site lock in storefront request pipeline"
 
 ```ts
 it("redirects authenticated admins away from /locked", async () => {
-  await expect(LockedPage({ searchParams: Promise.resolve({ next: "/products" }) })).rejects.toThrow();
+  await expect(
+    LockedPage({ searchParams: Promise.resolve({ next: "/products" }) }),
+  ).rejects.toThrow();
 });
 ```
 
@@ -107,7 +119,9 @@ if (session && isAdminRole(session.role)) {
 - [ ] **Step 4: Keep countdown + date rendering intact for non-admins**
 
 ```tsx
-{unlockAtIso ? <UnlockTimer unlockAtIso={unlockAtIso} /> : null}
+{
+  unlockAtIso ? <UnlockTimer unlockAtIso={unlockAtIso} /> : null;
+}
 ```
 
 - [ ] **Step 5: Run test to verify it passes**
@@ -125,6 +139,7 @@ git commit -m "fix: allow admins to bypass locked page"
 ### Task 3: Final verification
 
 **Files:**
+
 - Modify: `src/proxy/site-lock.ts`
 - Modify: request proxy entrypoint
 - Modify: `app/locked/page.tsx`

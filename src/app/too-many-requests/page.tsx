@@ -2,6 +2,7 @@
 "use client";
 
 import { Suspense } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 function TooManyRequestsContent() {
@@ -29,20 +30,20 @@ function TooManyRequestsContent() {
           </div>
 
           <h1 className="mt-6 text-3xl sm:text-4xl font-semibold tracking-tight text-center">
-            Slow it down — we're restocking
+            Slow it down — we’re restocking
           </h1>
 
           <p className="mt-4 text-center text-zinc-300 max-w-2xl mx-auto">
-            You've sent too many requests in a short period. Please try again shortly.
+            You’ve sent too many requests in a short period. Please try again shortly.
           </p>
 
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <a
+            <Link
               href="/"
               className="inline-flex items-center justify-center rounded-lg bg-white px-5 py-3 text-sm font-semibold text-black hover:bg-zinc-200 transition-colors"
             >
               Back to home
-            </a>
+            </Link>
 
             <button
               type="button"

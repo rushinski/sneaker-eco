@@ -33,6 +33,7 @@
 ### Task 1: Add Tenant Store Access Persistence
 
 **Files:**
+
 - Create: `supabase/migrations/20260515120000_store_access_settings.sql`
 - Create: `src/repositories/store-access-settings-repo.ts`
 - Create: `src/services/store-access-settings-service.ts`
@@ -255,6 +256,7 @@ git commit -m "feat: add tenant store access settings"
 ### Task 2: Add Admin Settings API And UI
 
 **Files:**
+
 - Create: `app/api/admin/store-access/route.ts`
 - Create: `app/admin/settings/store-access/page.tsx`
 - Create: `src/components/admin/settings/StoreAccessSettingsPanel.tsx`
@@ -318,7 +320,10 @@ export async function GET(request: Request) {
   const service = new StoreAccessSettingsService(supabase);
 
   const settings = await service.getSettings(tenantId);
-  return NextResponse.json({ settings, requestId }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json(
+    { settings, requestId },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 export async function POST(request: Request) {
@@ -344,7 +349,10 @@ export async function POST(request: Request) {
     checkoutLockMessage: parsed.data.checkoutLockMessage?.trim() || undefined,
   });
 
-  return NextResponse.json({ settings, requestId }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json(
+    { settings, requestId },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }
 ```
 
@@ -405,7 +413,9 @@ export function StoreAccessSettingsPanel() {
       const data = await response.json();
       if (data.settings) {
         setSiteLockEnabled(Boolean(data.settings.siteLockEnabled));
-        setSiteUnlockAt(data.settings.siteUnlockAt ? data.settings.siteUnlockAt.slice(0, 16) : "");
+        setSiteUnlockAt(
+          data.settings.siteUnlockAt ? data.settings.siteUnlockAt.slice(0, 16) : "",
+        );
         setCheckoutLockEnabled(Boolean(data.settings.checkoutLockEnabled));
         setCheckoutLockMessage(data.settings.checkoutLockMessage ?? "");
       }
@@ -429,7 +439,11 @@ export function StoreAccessSettingsPanel() {
       }),
     });
     const data = await response.json();
-    setMessage(response.ok ? "Store access settings updated." : data.error ?? "Failed to save settings.");
+    setMessage(
+      response.ok
+        ? "Store access settings updated."
+        : (data.error ?? "Failed to save settings."),
+    );
     setIsSaving(false);
   };
 
@@ -531,6 +545,7 @@ git commit -m "feat: add store access admin settings"
 ### Task 3: Wire Proxy And Checkout Enforcement
 
 **Files:**
+
 - Create: `src/lib/store-access/get-store-access-settings.ts`
 - Create: `src/components/checkout/CheckoutLockedNotice.tsx`
 - Modify: `src/proxy/site-lock.ts`
@@ -660,9 +675,7 @@ export default async function CheckoutGatePage() {
 
   if (checkoutLock) {
     return (
-      <CheckoutLockedNotice
-        message={storeAccess?.settings.checkoutLockMessage ?? ""}
-      />
+      <CheckoutLockedNotice message={storeAccess?.settings.checkoutLockMessage ?? ""} />
     );
   }
 
@@ -679,11 +692,7 @@ import { CheckoutStart } from "@/components/checkout/CheckoutStart";
 export default async function CheckoutStartPage() {
   const storeAccess = await getStoreAccessSettings();
   if (storeAccess?.settings.checkoutLockEnabled) {
-    return (
-      <CheckoutLockedNotice
-        message={storeAccess.settings.checkoutLockMessage}
-      />
-    );
+    return <CheckoutLockedNotice message={storeAccess.settings.checkoutLockMessage} />;
   }
 
   return <CheckoutStart />;

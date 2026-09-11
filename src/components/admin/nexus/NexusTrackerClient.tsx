@@ -11,16 +11,19 @@ export default function NexusTrackerClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [savingState, setSavingState] = useState("");
 
-  const load = async () => {
+  const fetchData = async () => {
     const response = await fetch("/api/admin/nexus/summary", { cache: "no-store" });
-    const result = await response.json();
-    if (response.ok) {
-      setData(result);
-    }
-    setIsLoading(false);
+    return response.ok ? ((await response.json()) as NexusData) : null;
   };
 
   useEffect(() => {
+    const load = async () => {
+      const result = await fetchData();
+      if (result) {
+        setData(result);
+      }
+      setIsLoading(false);
+    };
     void load();
   }, []);
 
@@ -35,7 +38,10 @@ export default function NexusTrackerClient() {
       if (!response.ok) {
         throw new Error("Failed to save nexus setting");
       }
-      await load();
+      const result = await fetchData();
+      if (result) {
+        setData(result);
+      }
     } finally {
       setSavingState("");
     }

@@ -201,7 +201,10 @@ export function AdminLineChart<T extends Record<string, unknown>>({
       }) as NormalizedRow<T>[];
   }, [data, xKey, yKey]);
 
-  const fmt = valueFormatter ?? ((v: number) => String(v));
+  const fmt = useMemo(
+    () => valueFormatter ?? ((v: number) => String(v)),
+    [valueFormatter],
+  );
   const displayName = seriesName ?? yLabel ?? "Value";
 
   // IMPORTANT: This hook must run on every render (even when empty)

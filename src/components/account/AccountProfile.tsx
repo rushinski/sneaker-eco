@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { PasswordRequirements } from "@/components/auth/register/PasswordRequirements";
 import { Toast } from "@/components/ui/Toast";
 import { isPasswordValid } from "@/lib/validation/password";
 
 export function AccountProfile({ userEmail }: { userEmail: string }) {
+  const router = useRouter();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [newPasswordVisible, setNewPasswordVisible] = useState(false);
@@ -61,7 +63,8 @@ export function AccountProfile({ userEmail }: { userEmail: string }) {
     setIsSigningOut(true);
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      window.location.href = "/";
+      router.push("/");
+      router.refresh();
     } catch {
       setMessage("Failed to log out. Please try again.");
       setIsSigningOut(false);

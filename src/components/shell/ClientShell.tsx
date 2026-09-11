@@ -132,9 +132,9 @@ export function ClientShell({
         <ChatQueryOpener onOpenChat={openChat} />
       </Suspense>
       {isStoreRoute && <ChatLauncher />}
-      {isStoreRoute && (
-        <ChatDrawer isOpen={chatOpen} onClose={() => setChatOpen(false)} />
-      )}
+      {isStoreRoute && chatOpen ? (
+        <ChatDrawer onClose={() => setChatOpen(false)} />
+      ) : null}
       {isStoreRoute && <Footer />}
       {isStoreRoute && <MobileBottomNav />}
     </>

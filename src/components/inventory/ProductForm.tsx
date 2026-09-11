@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { GripVertical, ImagePlus, Plus, Trash2, X } from "lucide-react";
+import Image from "next/image";
 import {
   closestCenter,
   DndContext,
@@ -461,38 +462,35 @@ export function ProductForm({
     });
   }, [visibleAutoTags, customTags]);
 
-  // OPTIMIZATION: Memoize brand catalog loader
-  const loadBrands = useCallback(async () => {
-    try {
-      const response = await fetch("/api/admin/catalog/brands");
-      const data = await response.json();
-      if (response.ok) {
-        const options = (data.brands || []).map((brand: BrandCatalogEntry) => ({
-          id: brand.id,
-          label: brand.canonical_label,
-          groupKey: brand.group?.key ?? null,
-        }));
-        setBrandOptions(options);
-      }
-    } catch (error) {
-      logError(error, { layer: "frontend", event: "inventory_load_brand_catalog" });
-    }
-  }, []);
-
   // UPDATED: Skip loading if data already provided from server
   useEffect(() => {
     if (initialBrands) {
       // Data already loaded from server
       return;
     }
-    loadBrands();
-  }, [initialBrands, loadBrands]);
+    const loadBrands = async () => {
+      try {
+        const response = await fetch("/api/admin/catalog/brands");
+        const data = await response.json();
+        if (response.ok) {
+          const options = (data.brands || []).map((brand: BrandCatalogEntry) => ({
+            id: brand.id,
+            label: brand.canonical_label,
+            groupKey: brand.group?.key ?? null,
+          }));
+          setBrandOptions(options);
+        }
+      } catch (error) {
+        logError(error, { layer: "frontend", event: "inventory_load_brand_catalog" });
+      }
+    };
+    void loadBrands();
+  }, [initialBrands]);
 
   const effectiveBrandId = brandOverrideId ?? parseResult?.brand?.id ?? null;
 
   useEffect(() => {
     if (!effectiveBrandId) {
-      setModelOptions([]);
       return;
     }
 
@@ -508,30 +506,24 @@ export function ProductForm({
             label: model.canonical_label,
           }));
           setModelOptions(options);
+          if (
+            modelOverrideId &&
+            !options.some((option: CatalogOption) => option.id === modelOverrideId)
+          ) {
+            setModelOverrideId(null);
+            setModelOverrideInput("");
+          }
         }
       } catch (error) {
         logError(error, { layer: "frontend", event: "inventory_load_model_catalog" });
       }
     };
 
-    loadModels();
-  }, [effectiveBrandId]);
-
-  useEffect(() => {
-    if (!modelOverrideId) {
-      return;
-    }
-    const stillValid = modelOptions.some((option) => option.id === modelOverrideId);
-    if (!stillValid) {
-      setModelOverrideId(null);
-      setModelOverrideInput("");
-    }
-  }, [modelOptions, modelOverrideId]);
+    void loadModels();
+  }, [effectiveBrandId, modelOverrideId]);
 
   useEffect(() => {
     if (!titleRaw.trim()) {
-      setParseResult(null);
-      setParseStatus("idle");
       return;
     }
 
@@ -981,7 +973,7 @@ export function ProductForm({
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setIsDragging(false);
-    handleUploadFiles(event.dataTransfer.files);
+    void handleUploadFiles(event.dataTransfer.files);
   };
 
   const handleAddTag = (label: string) => {
@@ -1216,7 +1208,14 @@ export function ProductForm({
             <input
               type="text"
               value={titleRaw}
-              onChange={(e) => setTitleRaw(e.target.value)}
+              onChange={(e) => {
+                setTitleRaw(e.target.value);
+                if (!e.target.value.trim()) {
+                  setParseResult(null);
+                  setParseStatus("idle");
+                  setModelOptions([]);
+                }
+              }}
               required
               className="w-full bg-zinc-800 text-white px-3 md:px-4 py-2 rounded border border-zinc-800/70 focus:outline-none focus:ring-2 focus:ring-red-600 text-sm md:text-base"
             />
@@ -1699,9 +1698,12 @@ export function ProductForm({
                 >
                   <div className="aspect-square bg-zinc-900 overflow-hidden">
                     {image.url ? (
-                      <img
+                      <Image
                         src={image.url}
                         alt="Preview"
+                        width={512}
+                        height={512}
+                        unoptimized
                         className="w-full h-full object-cover"
                       />
                     ) : (

@@ -62,7 +62,21 @@ export function FeaturedItems({ embedded = false }: FeaturedItemsProps) {
   }, []);
 
   useEffect(() => {
-    loadFeaturedItems();
+    const loadFeaturedItems = async () => {
+      try {
+        const response = await fetch("/api/featured-items");
+        const data = await response.json();
+        if (response.ok) {
+          setFeatured(data.featured || []);
+        }
+      } catch (error) {
+        logError(error, { layer: "frontend", event: "load_featured_items_home" });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadFeaturedItems();
   }, []);
 
   useEffect(() => {
@@ -85,20 +99,6 @@ export function FeaturedItems({ embedded = false }: FeaturedItemsProps) {
       window.removeEventListener("resize", onResize);
     };
   }, [featured, checkScrollButtons]);
-
-  const loadFeaturedItems = async () => {
-    try {
-      const response = await fetch("/api/featured-items");
-      const data = await response.json();
-      if (response.ok) {
-        setFeatured(data.featured || []);
-      }
-    } catch (error) {
-      logError(error, { layer: "frontend", event: "load_featured_items_home" });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const scroll = (direction: "left" | "right") => {
     const container = scrollRef.current;

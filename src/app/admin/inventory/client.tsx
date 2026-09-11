@@ -3,6 +3,7 @@
 
 import { Fragment, useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Plus,
   Trash2,
@@ -88,6 +89,7 @@ export function InventoryClient({
   const [inventoryUnitTotalCount, setInventoryUnitTotalCount] = useState(
     initialInventoryUnitTotal,
   );
+  const [renderedAt, setRenderedAt] = useState(() => Date.now());
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [expandedVariants, setExpandedVariants] = useState<Record<string, boolean>>({});
   const [detailsSelection, setDetailsSelection] = useState<{
@@ -250,9 +252,16 @@ export function InventoryClient({
 
         const loaded: ProductWithDetails[] = data.products || [];
         setProducts(loaded);
-        setTotalCount(Number(data.total ?? 0));
+        const nextTotal = Number(data.total ?? 0);
+        setTotalCount(nextTotal);
         setSkuTotalCount(Number(data.skuTotal ?? data.total ?? 0));
         setInventoryUnitTotalCount(Number(data.inventoryUnitTotal ?? 0));
+        setRenderedAt(Date.now());
+
+        const lastPage = Math.max(1, Math.ceil(nextTotal / PAGE_SIZE));
+        if ((filters?.page ?? 1) > lastPage) {
+          setPage(lastPage);
+        }
 
         // Update URL
         updateURL(filters || {});
@@ -268,22 +277,6 @@ export function InventoryClient({
   );
 
   useEffect(() => {
-    setPage(1);
-  }, [searchQuery, categoryFilter, conditionFilter, stockStatusFilter]);
-
-  useEffect(() => {
-    setSelectedIds([]);
-    setSelectAllMatching(false);
-    setExpandedVariants({});
-  }, [page, searchQuery, categoryFilter, conditionFilter, stockStatusFilter]);
-
-  useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages);
-    }
-  }, [page, totalPages]);
-
-  useEffect(() => {
     filtersRef.current = {
       q: searchQuery,
       category: categoryFilter,
@@ -293,7 +286,10 @@ export function InventoryClient({
     };
 
     const timeout = setTimeout(() => {
-      loadProducts(filtersRef.current);
+      setSelectedIds([]);
+      setSelectAllMatching(false);
+      setExpandedVariants({});
+      void loadProducts(filtersRef.current);
     }, 250);
 
     return () => clearTimeout(timeout);
@@ -331,7 +327,7 @@ export function InventoryClient({
         window.clearTimeout(refreshTimerRef.current);
       }
       refreshTimerRef.current = window.setTimeout(() => {
-        loadProducts(filtersRef.current, false);
+        void loadProducts(filtersRef.current, false);
       }, 300);
     };
 
@@ -353,7 +349,7 @@ export function InventoryClient({
       if (refreshTimerRef.current) {
         window.clearTimeout(refreshTimerRef.current);
       }
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
   }, [loadProducts]);
 
@@ -403,7 +399,7 @@ export function InventoryClient({
       };
     }
 
-    if (parsed <= Date.now()) {
+    if (parsed <= renderedAt) {
       return {
         isLive: true,
         label: "Live",
@@ -413,7 +409,7 @@ export function InventoryClient({
     }
 
     const scheduledAt = new Date(parsed);
-    const includeYear = scheduledAt.getFullYear() !== new Date().getFullYear();
+    const includeYear = scheduledAt.getFullYear() !== new Date(renderedAt).getFullYear();
     const dateText = includeYear
       ? LIVE_DATE_WITH_YEAR_FORMATTER.format(scheduledAt)
       : LIVE_DATE_FORMATTER.format(scheduledAt);
@@ -890,7 +886,10 @@ export function InventoryClient({
 
       <div className="border-b border-zinc-800/70 flex space-x-6">
         <button
-          onClick={() => setStockStatusFilter("in_stock")}
+          onClick={() => {
+            setPage(1);
+            setStockStatusFilter("in_stock");
+          }}
           className={`py-3 text-sm font-medium transition-colors ${
             stockStatusFilter === "in_stock"
               ? "text-white border-b-2 border-red-600"
@@ -901,7 +900,10 @@ export function InventoryClient({
           In Stock
         </button>
         <button
-          onClick={() => setStockStatusFilter("archived")}
+          onClick={() => {
+            setPage(1);
+            setStockStatusFilter("archived");
+          }}
           className={`py-3 text-sm font-medium transition-colors ${
             stockStatusFilter === "archived"
               ? "text-white border-b-2 border-red-600"
@@ -922,7 +924,10 @@ export function InventoryClient({
           <input
             type="text"
             value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
+            onChange={(event) => {
+              setPage(1);
+              setSearchQuery(event.target.value);
+            }}
             placeholder="Search raw names or SKU"
             className="w-full bg-transparent text-sm text-white placeholder:text-gray-500 outline-none
                        focus:outline-none focus-visible:outline-none focus-visible:ring-0"
@@ -933,7 +938,10 @@ export function InventoryClient({
           <div className="w-full sm:w-56">
             <RdkSelect
               value={categoryFilter}
-              onChange={(v) => setCategoryFilter(v as Category | "all")}
+              onChange={(v) => {
+                setPage(1);
+                setCategoryFilter(v as Category | "all");
+              }}
               options={[
                 { value: "all", label: "All categories" },
                 { value: "sneakers", label: "Sneakers" },
@@ -947,7 +955,10 @@ export function InventoryClient({
           <div className="w-full sm:w-48">
             <RdkSelect
               value={conditionFilter}
-              onChange={(v) => setConditionFilter(v as Condition | "all")}
+              onChange={(v) => {
+                setPage(1);
+                setConditionFilter(v as Condition | "all");
+              }}
               options={[
                 { value: "all", label: "All conditions" },
                 { value: "new", label: "New" },
@@ -1094,9 +1105,12 @@ export function InventoryClient({
                         <td className="px-4 py-3">
                           <div className="w-12 h-12 rounded bg-zinc-800 border border-zinc-800/70 overflow-hidden flex items-center justify-center">
                             {primaryImageUrl ? (
-                              <img
+                              <Image
                                 src={primaryImageUrl}
                                 alt={rawTitle}
+                                width={48}
+                                height={48}
+                                unoptimized
                                 className="w-full h-full object-cover"
                               />
                             ) : (
@@ -1316,9 +1330,12 @@ export function InventoryClient({
                   <div className="flex items-start gap-3">
                     <div className="w-14 h-14 rounded bg-zinc-800 border border-zinc-800/70 overflow-hidden flex items-center justify-center">
                       {primaryImageUrl ? (
-                        <img
+                        <Image
                           src={primaryImageUrl}
                           alt={rawTitle}
+                          width={56}
+                          height={56}
+                          unoptimized
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -1495,12 +1512,14 @@ export function InventoryClient({
 
       {!isLoading && renderPagination()}
 
-      <InventoryProductDetailsModal
-        open={Boolean(detailsSelection)}
-        product={detailsSelection?.product ?? null}
-        variant={detailsSelection?.variant ?? null}
-        onClose={() => setDetailsSelection(null)}
-      />
+      {detailsSelection ? (
+        <InventoryProductDetailsModal
+          open
+          product={detailsSelection.product}
+          variant={detailsSelection.variant}
+          onClose={() => setDetailsSelection(null)}
+        />
+      ) : null}
 
       <ConfirmDialog
         isOpen={Boolean(pendingDelete)}

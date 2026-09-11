@@ -38,18 +38,12 @@ export default function AdminProfilePage() {
       }
     };
 
-    loadProfile();
+    void loadProfile();
   }, []);
 
   const role = isProfileRole(profile?.role) ? profile.role : "customer";
   const canInvite = canInviteAdmins(role);
   const canInviteSuper = isDevRole(role);
-
-  useEffect(() => {
-    if (!canInviteSuper) {
-      setInviteRole("admin");
-    }
-  }, [canInviteSuper]);
 
   const handleSavePreferences = async () => {
     if (!profile) {

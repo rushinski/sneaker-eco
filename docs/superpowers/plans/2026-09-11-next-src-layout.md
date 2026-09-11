@@ -22,6 +22,7 @@
 ### Task 1: Move Next.js discovery roots
 
 **Files:**
+
 - Create: `tests/unit/next-src-layout.test.ts`
 - Move: `app/` to `src/app/`
 - Move: `proxy.ts` to `src/proxy.ts`
@@ -31,6 +32,7 @@
 - Modify: `docs/legacy/PROXY_PIPELINE.md`
 
 **Interfaces:**
+
 - Consumes: Next.js native `src/app` and `src/proxy.ts` discovery.
 - Produces: unchanged application routes and proxy exports from their new filesystem locations.
 

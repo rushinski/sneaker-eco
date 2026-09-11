@@ -11,7 +11,6 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useSession } from "@/contexts/SessionContext";
 
 interface ChatDrawerProps {
-  isOpen: boolean;
   onClose: () => void;
 }
 
@@ -30,18 +29,17 @@ type ChatMessage = {
   created_at: string;
 };
 
-export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
+export function ChatDrawer({ onClose }: ChatDrawerProps) {
   const pathname = usePathname();
   const { user } = useSession();
   const [chat, setChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageDraft, setMessageDraft] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
-  const [requiresAuth, setRequiresAuth] = useState(false);
+  const [requiresAuth, setRequiresAuth] = useState(!user);
   const [errorMessage, setErrorMessage] = useState("");
   const [confirmClose, setConfirmClose] = useState(false);
-  const hasLoadedMessages = useRef(false);
   const lastMessageId = useRef<string | null>(null);
   const draftRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -76,44 +74,7 @@ export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
     } finally {
       if (isInitial) {
         setIsMessagesLoading(false);
-        hasLoadedMessages.current = true;
       }
-    }
-  };
-
-  const loadChat = async () => {
-    setIsLoading(true);
-    setErrorMessage("");
-
-    try {
-      // OPTIMIZATION: Use session from context instead of fetching
-      if (!user) {
-        setRequiresAuth(true);
-        setChat(null);
-        setMessages([]);
-        return;
-      }
-
-      const response = await fetch("/api/chats/current", { cache: "no-store" });
-      if (!response.ok) {
-        setRequiresAuth(true);
-        setChat(null);
-        return;
-      }
-
-      const data = await response.json();
-      setRequiresAuth(false);
-      setChat(data.chat ?? null);
-      if (data.chat?.id) {
-        await loadMessages(data.chat.id, true);
-      } else {
-        setMessages([]);
-      }
-    } catch (error) {
-      setErrorMessage("Failed to load chat.");
-      logError(error, { layer: "frontend", event: "chat_load_chat" });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -128,14 +89,35 @@ export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
   }, [messageDraft]);
 
   useEffect(() => {
-    if (!isOpen) {
+    if (!user) {
       return;
     }
-    loadChat();
-  }, [isOpen]);
+    const loadChat = async () => {
+      try {
+        const response = await fetch("/api/chats/current", { cache: "no-store" });
+        if (!response.ok) {
+          setRequiresAuth(true);
+          return;
+        }
+
+        const data = await response.json();
+        setRequiresAuth(false);
+        setChat(data.chat ?? null);
+        if (data.chat?.id) {
+          await loadMessages(data.chat.id, true);
+        }
+      } catch (error) {
+        setErrorMessage("Failed to load chat.");
+        logError(error, { layer: "frontend", event: "chat_load_chat" });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void loadChat();
+  }, [user]);
 
   useEffect(() => {
-    if (!isOpen || !chat?.id) {
+    if (!chat?.id) {
       return;
     }
     const supabase = createSupabaseBrowserClient();
@@ -162,12 +144,11 @@ export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
-  }, [isOpen, chat?.id]);
+  }, [chat?.id]);
 
   useEffect(() => {
-    hasLoadedMessages.current = false;
     lastMessageId.current = null;
   }, [chat?.id]);
 
@@ -237,10 +218,6 @@ export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
     }
   };
 
-  if (!isOpen) {
-    return null;
-  }
-
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
@@ -292,7 +269,7 @@ export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
           ) : (
             <>
               <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-                {isMessagesLoading && !hasLoadedMessages.current ? (
+                {isMessagesLoading ? (
                   <div className="text-sm text-zinc-500">Loading messages...</div>
                 ) : messages.length === 0 ? (
                   <div className="text-sm text-zinc-500">No messages yet.</div>
@@ -327,7 +304,7 @@ export function ChatDrawer({ isOpen, onClose }: ChatDrawerProps) {
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
-                        handleSend();
+                        void handleSend();
                       }
                     }}
                     placeholder="Type your message..."

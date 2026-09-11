@@ -9,8 +9,6 @@ export async function GET() {
   const start = Date.now();
 
   try {
-    env;
-
     // Supabase readiness (Service Role Key)
     const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SECRET_KEY);
 

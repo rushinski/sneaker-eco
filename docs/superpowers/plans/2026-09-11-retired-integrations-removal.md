@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Do not edit supabase/migrations/** or src/types/db/database.types.ts.
+- Do not edit supabase/migrations/\*\* or src/types/db/database.types.ts.
 - Keep LIGHTSPEED_ACCESS_TOKEN and LIGHTSPEED_DOMAIN_PREFIX declared and injected as reserved values, but no runtime code may consume them.
 - Keep Supabase Auth verification, OTP, OAuth, and password-reset behavior; remove only custom AWS mail side effects.
 - Do not add replacement vendors, compatibility routes, stubs, packages, or migrations.
@@ -29,12 +29,12 @@
 
 - [ ] **Step 1: Add the forbidden-reference test**
 
-Use only node:child_process and node:fs. Get files with git ls-files --cached --others --exclude-standard. Exclude supabase/migrations/**, src/types/db/database.types.ts, this plan, the approved design, and the test itself. Strip the two exact reserved Lightspeed env identifiers before applying this case-insensitive pattern:
+Use only node:child_process and node:fs. Get files with git ls-files --cached --others --exclude-standard. Exclude supabase/migrations/\*\*, src/types/db/database.types.ts, this plan, the approved design, and the test itself. Strip the two exact reserved Lightspeed env identifiers before applying this case-insensitive pattern:
 
-~~~ts
+```ts
 const FORBIDDEN =
   /stripe|payrilla|lightspeed|@aws-sdk\/client-(?:sesv2?|ssm)|nodemailer|nofraud|here[_ -]?maps?|shippo|@vercel\/(?:analytics|speed-insights)|vercel-scripts|vercel telemetry|NEXT_TELEMETRY_DISABLED|VERCEL_ANALYTICS|VERCEL_SPEED_INSIGHTS|ziptax/i;
-~~~
+```
 
 Collect matching filenames and assert expect(violations).toEqual([]). Binary read failures return no violation; do not add live-code allowlists.
 
@@ -42,9 +42,9 @@ Collect matching filenames and assert expect(violations).toEqual([]). Binary rea
 
 Run:
 
-~~~powershell
+```powershell
 npx jest --config jest.config.ts tests/unit/retired-integrations-structure.test.ts --runInBand
-~~~
+```
 
 Expected: FAIL with current provider files. This proves the guard detects the code being removed.
 
@@ -52,7 +52,7 @@ Expected: FAIL with current provider files. This proves the guard detects the co
 
 Use react-dom/server and assert the visible unavailable statement:
 
-~~~tsx
+```tsx
 import { renderToStaticMarkup } from "react-dom/server";
 
 import CheckoutPage from "../../app/checkout/page";
@@ -62,7 +62,7 @@ it("keeps checkout visible and unavailable", () => {
     "Checkout is currently unavailable",
   );
 });
-~~~
+```
 
 - [ ] **Step 4: Prove the checkout test is red**
 
@@ -76,10 +76,10 @@ Run the checkout test alone. Expected: FAIL because the current page still gates
 
 - Modify: app/checkout/page.tsx, app/cart/page.tsx
 - Delete: app/checkout/cancel/page.tsx, error.tsx, layout.tsx, processing/layout.tsx, processing/page.tsx, start/page.tsx, success/page.tsx
-- Delete: app/api/checkout/**, app/api/cart/snapshot/route.ts, app/api/cart/restore/route.ts
+- Delete: app/api/checkout/\*\*, app/api/cart/snapshot/route.ts, app/api/cart/restore/route.ts
 - Delete: app/api/admin/payrilla/credentials/route.ts, app/api/webhooks/payrilla/route.ts
-- Delete: src/components/checkout/**
-- Delete: src/lib/cart/snapshot.ts, src/lib/checkout/**
+- Delete: src/components/checkout/\*\*
+- Delete: src/lib/cart/snapshot.ts, src/lib/checkout/\*\*
 - Delete: src/lib/secrets/payrilla-secrets.ts, src/lib/validation/checkout.ts
 - Delete: src/services/checkout-pricing-service.ts, nofraud-service.ts, payrilla-charge-service.ts, ziptax-service.ts
 - Delete: src/types/domain/checkout.ts, src/types/domain/payrilla.ts
@@ -89,20 +89,18 @@ Run the checkout test alone. Expected: FAIL because the current page still gates
 
 Replace app/checkout/page.tsx with:
 
-~~~tsx
+```tsx
 export default function CheckoutPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-20 text-center">
-      <h1 className="text-3xl font-bold text-white">
-        Checkout is currently unavailable
-      </h1>
+      <h1 className="text-3xl font-bold text-white">Checkout is currently unavailable</h1>
       <p className="mt-4 text-gray-400">
         You can continue browsing and updating your cart.
       </p>
     </main>
   );
 }
-~~~
+```
 
 - [ ] **Step 2: Keep cart controls without provider behavior**
 
@@ -118,10 +116,10 @@ Replace surviving env.NODE_ENV reads with process.env.NODE_ENV. Do not add NODE_
 
 - [ ] **Step 5: Verify and commit**
 
-~~~powershell
+```powershell
 npx jest --config jest.config.ts tests/unit/checkout-page.test.tsx --runInBand
 rg -n -i "payrilla|nofraud|ziptax|NEXT_PUBLIC_GUEST_CHECKOUT_ENABLED" app src --glob "!src/types/db/database.types.ts"
-~~~
+```
 
 Expected: test PASS and scan empty.
 
@@ -135,10 +133,10 @@ Commit: git commit -m "refactor: retire checkout and payment flow"
 
 - Delete: app/order-status/[orderId]/page.tsx
 - Delete: app/admin/orders/**, app/admin/transactions/**, app/admin/sales/page.tsx, app/admin/analytics/financials/page.tsx
-- Delete: app/api/orders/**, app/api/account/orders/route.ts
+- Delete: app/api/orders/\*\*, app/api/account/orders/route.ts
 - Delete: app/api/admin/orders/**, app/api/admin/transactions/**, app/api/admin/analytics/route.ts
 - Delete: src/components/orders/**, src/components/admin/orders/**, src/components/admin/charts/SalesChart.tsx
-- Delete: src/lib/orders/**, src/lib/payments/card-brand.ts
+- Delete: src/lib/orders/\*\*, src/lib/payments/card-brand.ts
 - Delete: src/repositories/order-access-tokens-repo.ts, order-events-repo.ts, orders-repo.ts, payment-transactions-repo.ts, payment-webhook-events-repo.ts
 - Delete: src/services/evidence-service.ts, order-access-token-service.ts, orders-service.ts
 - Modify: app/admin/dashboard/page.tsx
@@ -169,10 +167,10 @@ Delete the listed repositories/services/components. Keep only pageview/traffic o
 
 - [ ] **Step 6: Verify and commit**
 
-~~~powershell
+```powershell
 rg -n -i "orders-repo|payment-transactions|payment-webhook|order-access|order-status|admin/transactions|admin/orders|primaryPaymentMethod|totalSpend|paymentCount" app src --glob "!src/types/db/database.types.ts"
 npx tsc --noEmit --pretty false 2>&1 | Select-String "orders|transaction|payment|analytics|customer"
-~~~
+```
 
 Expected: first scan empty; second has no errors from this slice.
 
@@ -186,12 +184,12 @@ Commit: git commit -m "refactor: remove order and transaction surfaces"
 
 - Delete: app/admin/pickups/page.tsx, app/admin/shipping/page.tsx
 - Delete: app/admin/settings/shipping/page.tsx, app/admin/settings/taxes/page.tsx
-- Delete: app/api/account/shipping/route.ts, app/api/account/addresses/**
-- Delete: app/api/admin/shipping/**, app/api/admin/tax-settings/route.ts
+- Delete: app/api/account/shipping/route.ts, app/api/account/addresses/\*\*
+- Delete: app/api/admin/shipping/\*\*, app/api/admin/tax-settings/route.ts
 - Delete: app/api/admin/nexus/sales-log/route.ts, app/api/maps/validate/route.ts, app/api/webhooks/shippo/route.ts
-- Delete: src/components/admin/shipping/**, src/components/admin/settings/TaxSettingsPanel.tsx
+- Delete: src/components/admin/shipping/\*\*, src/components/admin/settings/TaxSettingsPanel.tsx
 - Delete: src/components/shared/AddressInput.tsx, src/components/shared/AddressSuggestionModal.tsx
-- Delete: src/config/constants/shipping.ts, src/config/pickup.ts, src/lib/shippo/**
+- Delete: src/config/constants/shipping.ts, src/config/pickup.ts, src/lib/shippo/\*\*
 - Delete: src/repositories/addresses-repo.ts, shipping-carriers-repo.ts, shipping-defaults-repo.ts, shipping-origins-repo.ts, shipping-repo.ts, tax-settings-repo.ts
 - Delete: src/services/here-maps-service.ts, refund-notification-service.ts, shipping-carriers-service.ts, shipping-defaults-service.ts, shipping-label-service.ts, shipping-service.ts
 - Delete: src/types/domain/shipping.ts
@@ -214,10 +212,10 @@ Retain state registration and home-office/nexus-type methods. Remove order reads
 
 - [ ] **Step 4: Verify and commit**
 
-~~~powershell
+```powershell
 rg -n -i "shippo|here[_ -]?maps?|shipping-label|shipping-carriers|shipping-defaults|tracking_number|tax-settings|taxable_sales|transaction_count|tax_collected" app src --glob "!src/types/db/database.types.ts"
 npx tsc --noEmit --pretty false 2>&1 | Select-String "shipping|pickup|nexus|tax"
-~~~
+```
 
 Expected: scans show no retired flow and no errors in retained nexus configuration.
 
@@ -229,10 +227,10 @@ Commit: git commit -m "refactor: remove fulfillment and transaction tax flows"
 
 **Files:**
 
-- Delete: app/api/contact/route.ts, app/api/email/**, app/email/confirm/page.tsx
+- Delete: app/api/contact/route.ts, app/api/email/\*\*, app/email/confirm/page.tsx
 - Delete: src/components/contact/ContactForm.tsx
 - Delete: src/config/constants/contact.ts
-- Delete: src/lib/email/**
+- Delete: src/lib/email/\*\*
 - Delete: src/repositories/contact-messages-repo.ts
 - Delete: src/repositories/email-subscriber-repo.ts, email-subscription-token-repo.ts
 - Delete: src/services/contact-attachment-service.ts
@@ -263,10 +261,10 @@ Delete every listed contact helper, template, transport, repository, service, ty
 
 - [ ] **Step 5: Verify and commit**
 
-~~~powershell
+```powershell
 rg -n -i "@aws-sdk|nodemailer|SES_|AWS_REGION|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|SUPPORT_INBOX_EMAIL|sendEmail|email_subscribers|admin_order_notifications" app src --glob "!src/types/db/database.types.ts"
 npx tsc --noEmit --pretty false 2>&1 | Select-String "email|mailer|notification|contact"
-~~~
+```
 
 Expected: first scan empty; Supabase Auth routes still exist.
 
@@ -278,16 +276,16 @@ Commit: git commit -m "refactor: remove custom email delivery"
 
 **Files:**
 
-- Delete: app/admin/settings/lightspeed/page.tsx, app/api/admin/lightspeed/**, app/api/webhooks/lightspeed/route.ts
+- Delete: app/admin/settings/lightspeed/page.tsx, app/api/admin/lightspeed/\*\*, app/api/webhooks/lightspeed/route.ts
 - Delete: src/components/admin/inventory/SyncProductPreviewModal.tsx, src/components/admin/settings/LightspeedSettingsPanel.tsx
-- Delete: src/config/constants/lightspeed.ts, src/lib/lightspeed/**
+- Delete: src/config/constants/lightspeed.ts, src/lib/lightspeed/\*\*
 - Delete: src/repositories/deleted-product-recovery-repo.ts, lightspeed-links-repo.ts, lightspeed-settings-repo.ts, lightspeed-webhook-events-repo.ts
-- Delete: every src/services/lightspeed-*.ts
+- Delete: every src/services/lightspeed-\*.ts
 - Modify: app/admin/inventory/client.tsx, create/actions.ts, [id]/edit/actions.ts
 - Modify: app/api/admin/products/route.ts, app/api/admin/products/[id]/route.ts
 - Modify: src/lib/validation/admin.ts, src/lib/validation/product.ts
 - Modify: src/repositories/product-repo.ts, src/services/product-service.ts, src/components/admin/AdminSidebar.tsx
-- Delete: tests/unit/lightspeed-*.test.ts, tests/unit/deleted-product-recovery-repo.test.ts, tests/unit/repair-lightspeed-sku-conflicts.test.ts
+- Delete: tests/unit/lightspeed-\*.test.ts, tests/unit/deleted-product-recovery-repo.test.ts, tests/unit/repair-lightspeed-sku-conflicts.test.ts
 - Delete: tests/unit/debug-sku-conflict.test.ts, tests/unit/list-products-without-images.test.ts
 - Modify: tests/unit/csrf.test.ts, product-archive-api.test.ts, product-archive-service.test.ts
 
@@ -305,10 +303,10 @@ Delete all listed provider libraries/repositories/services/tests. Remove provide
 
 - [ ] **Step 4: Verify and commit**
 
-~~~powershell
+```powershell
 npx jest --config jest.config.ts tests/unit/product-service.test.ts tests/unit/product-archive-api.test.ts tests/unit/product-archive-service.test.ts tests/unit/product-archive-repo.test.ts --runInBand
 rg -n -i "lightspeed" app src tests --glob "!src/config/env.ts" --glob "!src/types/db/database.types.ts"
-~~~
+```
 
 Expected: retained product tests PASS and scan empty.
 
@@ -326,7 +324,7 @@ Commit: git commit -m "refactor: remove legacy Lightspeed integration"
 - Modify: jest.config.ts, jest.integration.config.ts
 - Modify: .github/workflows/production.yml, .github/workflows/staging.yml
 - Modify: README.md
-- Delete: the eight provider-bearing docs/legacy/*.md files reported by the guard
+- Delete: the eight provider-bearing docs/legacy/\*.md files reported by the guard
 - Delete: all pre-removal Lightspeed files under docs/superpowers/plans and docs/superpowers/specs
 - Finalize: tests/unit/retired-integrations-structure.test.ts
 
@@ -348,9 +346,9 @@ Delete provider-bearing legacy docs and old Lightspeed plans/specs. Rewrite READ
 
 - [ ] **Step 5: Make the guard green and commit**
 
-~~~powershell
+```powershell
 npx jest --config jest.config.ts tests/unit/retired-integrations-structure.test.ts --runInBand
-~~~
+```
 
 Expected: PASS. Do not add a live-code exception to make it pass.
 
@@ -370,25 +368,25 @@ For each direct dependency/devDependency, search exact import(), require(), and 
 
 - [ ] **Step 2: Remove confirmed unused production packages**
 
-~~~powershell
+```powershell
 npm uninstall @aws-sdk/client-ses @aws-sdk/client-sesv2 @aws-sdk/client-ssm nodemailer shippo dayjs exceljs flags nanoid picocolors pino pino-pretty uuid
-~~~
+```
 
 - [ ] **Step 3: Remove confirmed unused development packages**
 
-~~~powershell
+```powershell
 npm uninstall -D @types/nodemailer @redocly/cli @types/pg baseline-browser-mapping concurrently globby pg prettier-plugin-tailwindcss ts-jest tsup whatwg-url
-~~~
+```
 
 Keep @vnedyalk0v/react19-simple-maps because Task 4 retains the local nexus map. Keep framework/config/CLI packages with a direct config or npm-script consumer.
 
 - [ ] **Step 4: Verify and commit**
 
-~~~powershell
+```powershell
 npm run typecheck
 npm run test:jest:unit
 npm run lint
-~~~
+```
 
 Expected: all exit 0. If a removed package is required by a configured command, restore only that package and record its exact consumer.
 
@@ -402,39 +400,39 @@ Commit: git commit -m "chore: remove unused dependencies"
 
 - [ ] **Step 1: Confirm immutable exceptions**
 
-~~~powershell
+```powershell
 git diff 1bff7223..HEAD -- supabase/migrations src/types/db/database.types.ts
-~~~
+```
 
 Expected: no output.
 
 - [ ] **Step 2: Run the quality gate**
 
-~~~powershell
+```powershell
 npm run typecheck
 npm run test:jest
 npm run lint
 npm run build
-~~~
+```
 
 Expected: all exit 0. If build reports fetch failed, first verify local Supabase at 127.0.0.1:54321 before editing route/cache code.
 
 - [ ] **Step 3: Run structural and environment scans**
 
-~~~powershell
+```powershell
 npx jest --config jest.config.ts tests/unit/retired-integrations-structure.test.ts --runInBand
 rg -n "process\.env\.|env\." app src --glob "!src/types/db/database.types.ts"
-~~~
+```
 
 Expected: guard PASS; every app env read maps to the approved schema or direct process.env.NODE_ENV.
 
 - [ ] **Step 4: Inspect final diff and history**
 
-~~~powershell
+```powershell
 git diff --check 1bff7223..HEAD
 git status --short
 git log --oneline 1bff7223..HEAD
-~~~
+```
 
 Expected: no whitespace errors, clean status, and bounded commits for checkout, transactions, fulfillment/tax, email, Lightspeed, configuration, and dependencies.
 

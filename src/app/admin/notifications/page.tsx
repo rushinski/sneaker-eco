@@ -50,12 +50,20 @@ type DeleteResponse = {
   deletedCount?: number;
 };
 
+async function fetchNotifications(nextPage: number, limit: number) {
+  const response = await fetch(
+    `/api/admin/notifications?limit=${limit}&page=${nextPage}`,
+    { cache: "no-store" },
+  );
+  return response.ok ? ((await response.json()) as ListResponse) : null;
+}
+
 export default function AdminNotificationsPage() {
   const limit = 20;
 
   const [page, setPage] = useState(1);
   const [data, setData] = useState<ListResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // per-row 3-dot menu
   const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null);
@@ -82,17 +90,10 @@ export default function AdminNotificationsPage() {
   const load = async (nextPage = page) => {
     setIsLoading(true);
     try {
-      const res = await fetch(
-        `/api/admin/notifications?limit=${limit}&page=${nextPage}`,
-        {
-          cache: "no-store",
-        },
-      );
-      if (!res.ok) {
+      const json = await fetchNotifications(nextPage, limit);
+      if (!json) {
         return;
       }
-
-      const json = (await res.json()) as ListResponse;
       setData(json);
       setPage(json.page);
 
@@ -105,7 +106,22 @@ export default function AdminNotificationsPage() {
   };
 
   useEffect(() => {
-    load(1);
+    const loadInitial = async () => {
+      try {
+        const json = await fetchNotifications(1, limit);
+        if (!json) {
+          return;
+        }
+        setData(json);
+        setPage(json.page);
+        emitUnreadCountUpdated(json.unreadCount);
+      } catch (error) {
+        logError(error, { layer: "frontend", event: "admin_notifications_center_load" });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void loadInitial();
   }, []);
 
   // Close popups on outside click + Esc
@@ -504,7 +520,7 @@ export default function AdminNotificationsPage() {
                         return;
                       }
                       if (!n.read_at) {
-                        markRead(n.id);
+                        void markRead(n.id);
                       }
                     }}
                     className={`block flex-1 min-w-0 px-3 sm:px-4 py-2.5 sm:py-3 transition group-hover:bg-zinc-900 ${

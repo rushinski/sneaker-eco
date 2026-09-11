@@ -38,15 +38,14 @@ type ChatMessage = {
 function AdminChatsContent() {
   const searchParams = useSearchParams();
   const [chats, setChats] = useState<ChatSummary[]>([]);
-  const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(() =>
+    searchParams.get("chatId"),
+  );
+  const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [messageDraft, setMessageDraft] = useState("");
   const [isLoadingChats, setIsLoadingChats] = useState(true);
-  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
-  const hasLoadedMessages = useRef(false);
   const lastMessageId = useRef<string | null>(null);
-  const hasLoadedChats = useRef(false);
   const activeChatIdRef = useRef<string | null>(null);
 
   const draftRef = useRef<HTMLTextAreaElement | null>(null);
@@ -66,10 +65,7 @@ function AdminChatsContent() {
   }, [activeChatId]);
 
   useEffect(() => {
-    const loadChats = async (isInitial = false) => {
-      if (isInitial) {
-        setIsLoadingChats(true);
-      }
+    const loadChats = async () => {
       try {
         const response = await fetch("/api/chats?status=open", { cache: "no-store" });
         const data = await response.json();
@@ -81,22 +77,12 @@ function AdminChatsContent() {
       } catch (error) {
         logError(error, { layer: "frontend", event: "admin_load_chats" });
       } finally {
-        if (isInitial) {
-          setIsLoadingChats(false);
-          hasLoadedChats.current = true;
-        }
+        setIsLoadingChats(false);
       }
     };
 
-    loadChats(true);
+    void loadChats();
   }, []);
-
-  useEffect(() => {
-    const chatIdParam = searchParams.get("chatId");
-    if (chatIdParam) {
-      setActiveChatId(chatIdParam);
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     if (!activeChatId) {
@@ -104,10 +90,8 @@ function AdminChatsContent() {
     }
 
     let isActive = true;
-    const loadMessages = async (isInitial = false) => {
-      if (isInitial) {
-        setIsLoadingMessages(true);
-      }
+    lastMessageId.current = null;
+    const loadMessages = async () => {
       try {
         const response = await fetch(`/api/chats/${activeChatId}/messages`, {
           cache: "no-store",
@@ -128,24 +112,14 @@ function AdminChatsContent() {
         }
       } catch (error) {
         logError(error, { layer: "frontend", event: "admin_load_chat_messages" });
-      } finally {
-        if (isInitial && isActive) {
-          setIsLoadingMessages(false);
-          hasLoadedMessages.current = true;
-        }
       }
     };
 
-    loadMessages(true);
+    void loadMessages();
 
     return () => {
       isActive = false;
     };
-  }, [activeChatId]);
-
-  useEffect(() => {
-    hasLoadedMessages.current = false;
-    lastMessageId.current = null;
   }, [activeChatId]);
 
   useEffect(() => {
@@ -165,6 +139,7 @@ function AdminChatsContent() {
             prev.some((chat) => chat.id === nextChat.id) ? prev : [nextChat, ...prev],
           );
           if (!activeChatIdRef.current) {
+            setMessages(null);
             setActiveChatId(nextChat.id);
           }
         },
@@ -230,9 +205,9 @@ function AdminChatsContent() {
           if (nextMessage.chat_id === activeChatIdRef.current) {
             lastMessageId.current = nextMessage.id;
             setMessages((prev) =>
-              prev.some((message) => message.id === nextMessage.id)
+              prev?.some((message) => message.id === nextMessage.id)
                 ? prev
-                : [...prev, nextMessage],
+                : [...(prev ?? []), nextMessage],
             );
           }
         },
@@ -240,8 +215,8 @@ function AdminChatsContent() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(chatsChannel);
-      supabase.removeChannel(messagesChannel);
+      void supabase.removeChannel(chatsChannel);
+      void supabase.removeChannel(messagesChannel);
     };
   }, []);
 
@@ -276,7 +251,7 @@ function AdminChatsContent() {
 
       const data = await response.json();
       if (response.ok && data.message) {
-        setMessages((prev) => [...prev, data.message]);
+        setMessages((prev) => [...(prev ?? []), data.message]);
       }
     } catch (error) {
       logError(error, { layer: "frontend", event: "admin_send_chat_message" });
@@ -333,7 +308,10 @@ function AdminChatsContent() {
                 return (
                   <button
                     key={chat.id}
-                    onClick={() => setActiveChatId(chat.id)}
+                    onClick={() => {
+                      setMessages(null);
+                      setActiveChatId(chat.id);
+                    }}
                     className={`w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 border-b border-zinc-800/70 transition min-w-0 ${
                       isActive
                         ? "bg-zinc-800 text-white"
@@ -380,7 +358,7 @@ function AdminChatsContent() {
           </div>
 
           <div className="flex-1 p-3 sm:p-4 space-y-3 overflow-y-auto">
-            {isLoadingMessages && !hasLoadedMessages.current ? (
+            {messages === null ? (
               <div className="text-[12px] sm:text-sm text-zinc-500">
                 Loading messages...
               </div>
@@ -422,7 +400,7 @@ function AdminChatsContent() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    handleSend();
+                    void handleSend();
                   }
                 }}
                 placeholder={activeChat ? "Type a reply..." : "Select a chat to reply"}

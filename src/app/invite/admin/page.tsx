@@ -16,8 +16,10 @@ type MeResponse = {
 function AdminInviteContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
-  const [state, setState] = useState<InviteState>("idle");
-  const [message, setMessage] = useState("");
+  const [state, setState] = useState<InviteState>(token ? "accepting" : "missing");
+  const [message, setMessage] = useState(
+    token ? "Accepting invite..." : "This invite link is missing a token.",
+  );
   const [me, setMe] = useState<MeResponse | null>(null);
 
   const nextUrl = useMemo(() => {
@@ -38,24 +40,15 @@ function AdminInviteContent() {
       }
     };
 
-    loadMe();
+    void loadMe();
   }, []);
 
   useEffect(() => {
-    if (!token) {
-      setState("missing");
-      setMessage("This invite link is missing a token.");
-      return;
-    }
-
-    if (!me?.user || state !== "idle") {
+    if (!token || !me?.user || state !== "accepting") {
       return;
     }
 
     const acceptInvite = async () => {
-      setState("accepting");
-      setMessage("Accepting invite...");
-
       try {
         const response = await fetch("/api/invites/accept", {
           method: "POST",
@@ -78,7 +71,7 @@ function AdminInviteContent() {
       }
     };
 
-    acceptInvite();
+    void acceptInvite();
   }, [token, me, state]);
 
   if (!token) {

@@ -65,12 +65,6 @@ export function AdminNotificationCenter({ placement = "top" }: Props) {
     }
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      loadNotifications();
-    }
-  }, [isOpen]);
-
   // Close on outside click + Esc (prevents weird stuck popovers)
   useEffect(() => {
     if (!isOpen) {
@@ -156,7 +150,13 @@ export function AdminNotificationCenter({ placement = "top" }: Props) {
     >
       <button
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => {
+          const nextIsOpen = !isOpen;
+          setIsOpen(nextIsOpen);
+          if (nextIsOpen) {
+            void loadNotifications();
+          }
+        }}
         className="relative flex items-center justify-center w-10 h-10 border border-zinc-800/70 bg-zinc-950 hover:bg-zinc-900 transition-colors rounded-sm"
         aria-label="Notifications"
         data-testid="admin-notifications-toggle"
@@ -201,7 +201,7 @@ export function AdminNotificationCenter({ placement = "top" }: Props) {
                   onClick={() => {
                     setIsOpen(false);
                     if (!notification.read_at) {
-                      markRead(notification.id);
+                      void markRead(notification.id);
                     }
                   }}
                   className={`block min-w-0 px-4 py-3 border-b border-zinc-900/70 hover:bg-zinc-900 transition ${

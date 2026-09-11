@@ -1,4 +1,6 @@
 // app/not-found.tsx
+import Link from "next/link";
+
 export default function NotFound() {
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center px-6">
@@ -21,32 +23,32 @@ export default function NotFound() {
           </h1>
 
           <p className="mt-4 text-center text-zinc-300 max-w-2xl mx-auto">
-            The link you followed doesn't exist anymore. Let's get you back to heat.
+            The link you followed doesn’t exist anymore. Let’s get you back to heat.
           </p>
 
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <a
+            <Link
               href="/"
               className="inline-flex items-center justify-center rounded-lg bg-white px-5 py-3 text-sm font-semibold text-black hover:bg-zinc-200 transition-colors focus:outline-none focus:ring-2 focus:ring-white/30"
             >
               Back to home
-            </a>
+            </Link>
 
-            <a
+            <Link
               href="/store"
               className="inline-flex items-center justify-center rounded-lg border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-100 hover:bg-zinc-900 transition-colors focus:outline-none focus:ring-2 focus:ring-white/20"
             >
               Shop new arrivals
-            </a>
+            </Link>
           </div>
 
           <div className="mt-6 text-center">
-            <a
+            <Link
               href="/bug-report"
               className="text-sm text-zinc-400 hover:text-white underline underline-offset-4 transition-colors"
             >
               Think this is a bug? Report it.
-            </a>
+            </Link>
           </div>
         </div>
       </main>

@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 
 import { logError } from "@/lib/utils/log";
 
@@ -37,7 +38,7 @@ export default function ErrorPage({
           </h1>
 
           <p className="mt-4 text-center text-zinc-300 max-w-2xl mx-auto">
-            We're fixing it now. Give it another try, or head back to the store.
+            We’re fixing it now. Give it another try, or head back to the store.
           </p>
 
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
@@ -49,21 +50,21 @@ export default function ErrorPage({
               Try again
             </button>
 
-            <a
+            <Link
               href="/"
               className="inline-flex items-center justify-center rounded-lg border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-100 hover:bg-zinc-900 transition-colors focus:outline-none focus:ring-2 focus:ring-white/20"
             >
               Back to home
-            </a>
+            </Link>
           </div>
 
           <div className="mt-6 text-center">
-            <a
+            <Link
               href="/bug-report"
               className="text-sm text-zinc-400 hover:text-white underline underline-offset-4 transition-colors"
             >
               Think this is a bug? Report it.
-            </a>
+            </Link>
           </div>
         </div>
       </main>

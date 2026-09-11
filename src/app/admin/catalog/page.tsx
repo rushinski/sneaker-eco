@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown, MoreVertical, Search } from "lucide-react";
 
 import { logError } from "@/lib/utils/log";
@@ -56,6 +56,27 @@ const toTitleCase = (value: string) =>
 
 const normalizeLabel = (value: string) => normalizeWhitespace(value).toLowerCase();
 
+async function fetchCatalogData() {
+  const [groupsRes, brandsRes, modelsRes, aliasesRes, candidatesRes] = await Promise.all([
+    fetch("/api/admin/catalog/brand-groups?includeInactive=1"),
+    fetch("/api/admin/catalog/brands?includeInactive=1"),
+    fetch("/api/admin/catalog/models?includeInactive=1"),
+    fetch("/api/admin/catalog/aliases?includeInactive=1"),
+    fetch("/api/admin/catalog/candidates?status=new"),
+  ]);
+
+  const [groupsData, brandsData, modelsData, aliasesData, candidatesData] =
+    await Promise.all([
+      groupsRes.json(),
+      brandsRes.json(),
+      modelsRes.json(),
+      aliasesRes.json(),
+      candidatesRes.json(),
+    ]);
+
+  return { groupsData, brandsData, modelsData, aliasesData, candidatesData };
+}
+
 function StatusPill({ active }: { active: boolean }) {
   return (
     <span
@@ -109,8 +130,11 @@ export default function TagsPage() {
   const [expandedBrands, setExpandedBrands] = useState<Record<string, boolean>>({});
 
   const normalizedQuery = query.trim().toLowerCase();
-  const matchesQuery = (value: string) =>
-    normalizedQuery.length === 0 || value.toLowerCase().includes(normalizedQuery);
+  const matchesQuery = useCallback(
+    (value: string) =>
+      normalizedQuery.length === 0 || value.toLowerCase().includes(normalizedQuery),
+    [normalizedQuery],
+  );
 
   const brandMap = useMemo(
     () => new Map(brands.map((brand) => [brand.id, brand])),
@@ -146,7 +170,7 @@ export default function TagsPage() {
         }
         return true;
       }),
-    [models, showInactive, showUnverified, normalizedQuery, brandMap],
+    [models, showInactive, showUnverified, matchesQuery, brandMap],
   );
 
   const filteredModelsByBrandId = useMemo(() => {
@@ -179,7 +203,7 @@ export default function TagsPage() {
         }
         return true;
       }),
-    [brands, showInactive, showUnverified, normalizedQuery, filteredModelsByBrandId],
+    [brands, showInactive, showUnverified, matchesQuery, filteredModelsByBrandId],
   );
 
   const filteredAliases = useMemo(
@@ -197,7 +221,7 @@ export default function TagsPage() {
         }
         return true;
       }),
-    [aliases, showInactive, normalizedQuery, brandMap, modelMap],
+    [aliases, showInactive, matchesQuery, brandMap, modelMap],
   );
 
   const filteredCandidates = useMemo(
@@ -210,27 +234,13 @@ export default function TagsPage() {
         }
         return true;
       }),
-    [candidates, normalizedQuery, brandMap],
+    [candidates, matchesQuery, brandMap],
   );
 
   const loadAll = async () => {
-    setIsLoading(true);
-    setMessage("");
     try {
-      const [groupsRes, brandsRes, modelsRes, aliasesRes, candidatesRes] =
-        await Promise.all([
-          fetch("/api/admin/catalog/brand-groups?includeInactive=1"),
-          fetch("/api/admin/catalog/brands?includeInactive=1"),
-          fetch("/api/admin/catalog/models?includeInactive=1"),
-          fetch("/api/admin/catalog/aliases?includeInactive=1"),
-          fetch("/api/admin/catalog/candidates?status=new"),
-        ]);
-
-      const groupsData = await groupsRes.json();
-      const brandsData = await brandsRes.json();
-      const modelsData = await modelsRes.json();
-      const aliasesData = await aliasesRes.json();
-      const candidatesData = await candidatesRes.json();
+      const { groupsData, brandsData, modelsData, aliasesData, candidatesData } =
+        await fetchCatalogData();
 
       setGroups(groupsData.groups || []);
       setBrands(brandsData.brands || []);
@@ -246,41 +256,59 @@ export default function TagsPage() {
   };
 
   useEffect(() => {
-    loadAll();
+    let active = true;
+    const loadInitialData = async () => {
+      try {
+        const { groupsData, brandsData, modelsData, aliasesData, candidatesData } =
+          await fetchCatalogData();
+        if (!active) {
+          return;
+        }
+        setGroups(groupsData.groups || []);
+        setBrands(brandsData.brands || []);
+        setModels(modelsData.models || []);
+        setAliases(aliasesData.aliases || []);
+        setCandidates(candidatesData.candidates || []);
+      } catch (error) {
+        logError(error, { layer: "frontend", event: "admin_load_catalog" });
+        setMessage("Failed to load tag data.");
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+    void loadInitialData();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  useEffect(() => {
-    if (!editTarget) {
-      setEditDraft(null);
-      return;
+  const openEditor = (target: EditTarget) => {
+    let draft: EditDraft;
+    if (target.type === "brand") {
+      draft = {
+        canonical_label: target.item.canonical_label,
+        is_active: target.item.is_active,
+        is_verified: target.item.is_verified,
+      } satisfies BrandEditDraft;
+    } else if (target.type === "model") {
+      draft = {
+        canonical_label: target.item.canonical_label,
+        brand_id: target.item.brand_id,
+        is_active: target.item.is_active,
+        is_verified: target.item.is_verified,
+      } satisfies ModelEditDraft;
+    } else {
+      draft = {
+        alias_label: target.item.alias_label,
+        priority: target.item.priority ?? 0,
+        is_active: target.item.is_active,
+      } satisfies AliasEditDraft;
     }
-
-    if (editTarget.type === "brand") {
-      const draft: BrandEditDraft = {
-        canonical_label: editTarget.item.canonical_label,
-        is_active: editTarget.item.is_active,
-        is_verified: editTarget.item.is_verified,
-      };
-      setEditDraft(draft);
-    }
-    if (editTarget.type === "model") {
-      const draft: ModelEditDraft = {
-        canonical_label: editTarget.item.canonical_label,
-        brand_id: editTarget.item.brand_id,
-        is_active: editTarget.item.is_active,
-        is_verified: editTarget.item.is_verified,
-      };
-      setEditDraft(draft);
-    }
-    if (editTarget.type === "alias") {
-      const draft: AliasEditDraft = {
-        alias_label: editTarget.item.alias_label,
-        priority: editTarget.item.priority ?? 0,
-        is_active: editTarget.item.is_active,
-      };
-      setEditDraft(draft);
-    }
-  }, [editTarget]);
+    setEditDraft(draft);
+    setEditTarget(target);
+  };
 
   const toggleMenu = (key: string) => {
     setOpenMenuKey((prev) => (prev === key ? null : key));
@@ -877,7 +905,7 @@ export default function TagsPage() {
                                     </button>
                                     {renderMenu(
                                       `brand-mobile-${brand.id}`,
-                                      () => setEditTarget({ type: "brand", item: brand }),
+                                      () => openEditor({ type: "brand", item: brand }),
                                       () =>
                                         setConfirmTarget({ type: "brand", item: brand }),
                                     )}
@@ -897,7 +925,7 @@ export default function TagsPage() {
                               </button>
                               {renderMenu(
                                 `brand-${brand.id}`,
-                                () => setEditTarget({ type: "brand", item: brand }),
+                                () => openEditor({ type: "brand", item: brand }),
                                 () => setConfirmTarget({ type: "brand", item: brand }),
                               )}
                             </div>
@@ -929,7 +957,7 @@ export default function TagsPage() {
                                         {renderMenu(
                                           `model-${model.id}`,
                                           () =>
-                                            setEditTarget({ type: "model", item: model }),
+                                            openEditor({ type: "model", item: model }),
                                           () =>
                                             setConfirmTarget({
                                               type: "model",
@@ -1088,7 +1116,7 @@ export default function TagsPage() {
                         <div className="flex items-center justify-end">
                           {renderMenu(
                             `alias-${alias.id}`,
-                            () => setEditTarget({ type: "alias", item: alias }),
+                            () => openEditor({ type: "alias", item: alias }),
                             () => setConfirmTarget({ type: "alias", item: alias }),
                           )}
                         </div>

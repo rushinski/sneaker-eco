@@ -494,7 +494,9 @@ export class ProductRepository {
       ]),
     );
 
-    let products = ids.map((id) => byId.get(id)).filter(Boolean) as ProductWithDetails[];
+    const products = ids
+      .map((id) => byId.get(id))
+      .filter(Boolean) as ProductWithDetails[];
 
     return {
       products,

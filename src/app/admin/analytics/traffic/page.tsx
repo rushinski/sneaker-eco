@@ -87,44 +87,44 @@ export default function AnalyticsTrafficPage() {
 
   const abortRef = useRef<AbortController | null>(null);
 
-  const load = async () => {
-    try {
-      abortRef.current?.abort();
-      const ac = new AbortController();
-      abortRef.current = ac;
-
-      const response = await fetch(`/api/admin/analytics?range=${range}`, {
-        cache: "no-store",
-        signal: ac.signal,
-      });
-      const data = await response.json();
-
-      if (response.ok) {
-        setTrafficSummary(
-          data.trafficSummary || { visits: 0, uniqueVisitors: 0, pageViews: 0 },
-        );
-        setTrafficTrendRaw(data.trafficTrend || []);
-      }
-    } catch (error: unknown) {
-      if (isAbortError(error)) {
-        return;
-      }
-      logError(error, { layer: "frontend", event: "admin_load_analytics_traffic" });
-    }
-  };
-
   useEffect(() => {
-    load();
+    const load = async () => {
+      try {
+        abortRef.current?.abort();
+        const ac = new AbortController();
+        abortRef.current = ac;
+
+        const response = await fetch(`/api/admin/analytics?range=${range}`, {
+          cache: "no-store",
+          signal: ac.signal,
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+          setTrafficSummary(
+            data.trafficSummary || { visits: 0, uniqueVisitors: 0, pageViews: 0 },
+          );
+          setTrafficTrendRaw(data.trafficTrend || []);
+        }
+      } catch (error: unknown) {
+        if (isAbortError(error)) {
+          return;
+        }
+        logError(error, { layer: "frontend", event: "admin_load_analytics_traffic" });
+      }
+    };
+
+    void load();
 
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") {
-        load();
+        void load();
       }
     }, POLL_MS);
 
     const onVisibility = () => {
       if (document.visibilityState === "visible") {
-        load();
+        void load();
       }
     };
     document.addEventListener("visibilitychange", onVisibility);

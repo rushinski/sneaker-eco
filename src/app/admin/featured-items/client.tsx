@@ -56,14 +56,12 @@ export function FeaturedItemsManager() {
   } | null>(null);
 
   useEffect(() => {
-    loadFeaturedItems();
+    void loadFeaturedItems();
   }, []);
 
   useEffect(() => {
     const query = searchQuery.trim();
     if (query.length === 0) {
-      setSearchResults([]);
-      setIsSearching(false);
       return;
     }
 
@@ -116,8 +114,7 @@ export function FeaturedItemsManager() {
     };
   }, [searchQuery]);
 
-  const loadFeaturedItems = async () => {
-    setIsLoading(true);
+  async function loadFeaturedItems() {
     try {
       const response = await fetch("/api/admin/featured-items");
       const data = await response.json();
@@ -135,7 +132,7 @@ export function FeaturedItemsManager() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   const addFeaturedItem = async (productId: string) => {
     try {
@@ -274,7 +271,13 @@ export function FeaturedItemsManager() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (!e.target.value.trim()) {
+                  setSearchResults([]);
+                  setIsSearching(false);
+                }
+              }}
               placeholder="Search products by name, brand, or SKU..."
               className="flex-1 bg-transparent text-white focus:outline-none"
             />
@@ -329,7 +332,7 @@ export function FeaturedItemsManager() {
           filteredSearchResults.length === 0 &&
           !isSearching && (
             <div className="mt-4 text-center text-gray-400 text-sm">
-              No products found matching "{searchQuery}"
+              No products found matching “{searchQuery}”
             </div>
           )}
       </div>

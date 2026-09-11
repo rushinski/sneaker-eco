@@ -18,7 +18,7 @@ body {
   border-radius: 0 !important;
 }
 
-body[data-route='admin'] main {
+body[data-route="admin"] main {
   padding-top: 0 !important;
 }
 
@@ -98,7 +98,7 @@ body[data-route='admin'] main {
 }
 
 .noise-overlay::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
@@ -117,12 +117,15 @@ body[data-route='admin'] main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
   cursor: pointer;
 }
 
 .rdk-checkbox::after {
-  content: '';
+  content: "";
   width: 6px;
   height: 10px;
   border-right: 2px solid #ffffff;
@@ -161,7 +164,10 @@ body[data-route='admin'] main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
   cursor: pointer;
 }
 
@@ -204,11 +210,13 @@ body[data-route='admin'] main {
   display: inline-flex;
   align-items: center;
   padding: 2px;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
   flex-shrink: 0;
 }
 
-.rdk-toggle[data-state='on'] {
+.rdk-toggle[data-state="on"] {
   background-color: #dc2626;
   border-color: #dc2626;
 }
@@ -221,7 +229,7 @@ body[data-route='admin'] main {
   transform: translateX(0);
 }
 
-.rdk-toggle[data-state='on'] .rdk-toggle__thumb {
+.rdk-toggle[data-state="on"] .rdk-toggle__thumb {
   transform: translateX(20px);
 }
 
@@ -272,7 +280,9 @@ body[data-route='admin'] main {
   }
 
   .variant-row__fields {
-    grid-template-columns: minmax(0, 7rem) minmax(0, 8rem) minmax(0, 6.5rem) minmax(0, 6.5rem) minmax(0, 4.5rem);
+    grid-template-columns:
+      minmax(0, 7rem) minmax(0, 8rem) minmax(0, 6.5rem) minmax(0, 6.5rem)
+      minmax(0, 4.5rem);
     gap: 0.75rem;
   }
 
@@ -283,6 +293,8 @@ body[data-route='admin'] main {
 
 @media (min-width: 1280px) {
   .variant-row__fields {
-    grid-template-columns: minmax(0, 8rem) minmax(0, 10rem) minmax(0, 7.5rem) minmax(0, 7.5rem) minmax(0, 5rem);
+    grid-template-columns:
+      minmax(0, 8rem) minmax(0, 10rem) minmax(0, 7.5rem) minmax(0, 7.5rem)
+      minmax(0, 5rem);
   }
 }

@@ -29,7 +29,6 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
 
   useEffect(() => {
     if (!query.trim()) {
-      setResults([]);
       return;
     }
 
@@ -82,7 +81,12 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             <input
               type="text"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                if (!e.target.value.trim()) {
+                  setResults([]);
+                }
+              }}
               placeholder="Search for sneakers, brands..."
               className="w-full bg-zinc-900 text-white px-4 py-3 rounded-lg pr-12 focus:outline-none focus:ring-2 focus:ring-red-600"
               autoFocus

@@ -13,6 +13,7 @@
 ### Task 1: Tighten The Desktop Variant Grid
 
 **Files:**
+
 - Modify: `src/components/inventory/ProductForm.tsx`
 - Verify: `src/components/inventory/ProductForm.tsx`
 
