@@ -9,6 +9,7 @@ yarn-error*/
 out/
 dist/
 .build/
+next-env.d.ts
 
 # Environment Variables (critical)
 .env
@@ -79,3 +80,5 @@ docker-storage/
 # developer tools
 .superpowers/
 .codegraph/
+
+.swc/
