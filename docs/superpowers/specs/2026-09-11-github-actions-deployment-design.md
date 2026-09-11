@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-11
 
-**Status:** Approved design; implementation pending
+**Status:** Implemented locally; external platform activation pending
 
 ## Objective
 
@@ -149,6 +149,8 @@ Create two Doppler Vercel syncs:
 
 Both syncs use Vercel Sensitive variables. Doppler remains the editing source of truth; Vercel receives managed copies because its build and serverless runtimes require environment variables.
 
+The workflows upload source for Vercel to build inside the target project. They do not use a local `vercel build --prebuilt` flow because Sensitive Vercel variables cannot be downloaded into the GitHub runner. The CLI is invoked as the exact ephemeral version `npx --yes vercel@59.16.0`, avoiding an application dependency solely for deployment tooling.
+
 Disconnect Vercel's Git auto-deployment from both projects before enabling the Actions workflows. Otherwise, a push to `main` can produce duplicate staging deployments or bypass the tag gate on the production project.
 
 A Doppler secret change affects the next Vercel deployment. Secret changes do not create an alternate production release path.
@@ -206,7 +208,7 @@ The implementation will correct these current defects:
 
 - move deployment variables out of the invalid `services` nesting and scope them to the jobs that need them;
 - trigger staging from `main`, stop automatic staging seeding, and remove the unused runtime `SUPABASE_DB_URL` requirement;
-- replace the nonexistent, suppressed `/api/healthz` check with a hard-failing `/api/readyz` check;
+- replace the suppressed liveness-only `/api/healthz` deployment check with a hard-failing `/api/readyz` dependency check;
 - pin the Vercel CLI and third-party actions instead of installing floating releases; and
 - validate production tags against `main` and split validation, migration, deployment, and verification into job retry boundaries.
 

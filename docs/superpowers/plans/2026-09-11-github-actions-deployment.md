@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-11-github-actions-deployment-design.md`
 
+**Execution correction:** Vercel is invoked as `npx --yes vercel@59.16.0` instead of being added to the application lockfile. Deployments upload source for Vercel to build with its Sensitive environment variables; the prebuilt command snippets below are superseded because those variables cannot be downloaded to the GitHub runner. `/api/healthz` exists as liveness-only; `/api/readyz` remains the deployment gate.
+
 ## Global Constraints
 
 - Preserve every unrelated uncommitted change; stage only task-owned hunks in the files named by the current task.

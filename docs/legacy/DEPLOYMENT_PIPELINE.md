@@ -1,68 +1,45 @@
 # Deployment Pipeline
 
-This document reflects the current CI and deployment flow defined in:
+## Release flow
 
-- `.github/workflows/staging.yml`
-- `.github/workflows/production.yml`
+1. Open a feature-branch pull request into `main` and wait for `Pull Request CI / validate`.
+2. Merge the pull request; `Staging Deployment` deploys that `main` SHA.
+3. Verify the staging deployment and its `/api/readyz` job.
+4. Create `vMAJOR.MINOR.PATCH` from the verified `main` commit.
+5. `Production Deployment` deploys that immutable tag.
 
-## Environments
+## One-time GitHub setup
 
-- `staging`: GitHub Actions workflow on the `staging` branch
-- `production`: GitHub Actions workflow on version tags (`vMAJOR.MINOR.PATCH`)
+In **Settings -> Environments**, create `staging` and `production`. Add one environment secret named `DOPPLER_TOKEN` to each: staging receives the read-only `stg_ci` service token and production receives the read-only `prd_ci` service token. Restrict staging to `main`, restrict production to protected `v*.*.*` tags, and enable required production reviewers when the repository plan supports them.
 
-## Staging workflow (validate-and-deploy)
+In **Settings -> Rules -> Rulesets**, protect `main` by requiring pull requests, the `Pull Request CI / validate` status, an up-to-date branch, and blocked force pushes and deletion. Where supported, add a `v*` tag ruleset that restricts tag creation, update, and deletion to release owners.
 
-Single job: `validate-and-deploy`
+In **Settings -> Actions -> General**, set default workflow permissions to read-only.
 
-Steps:
+## One-time Doppler and Vercel setup
 
-1. Checkout
-2. Setup Node + `npm ci`
-3. Install Supabase CLI
-4. Validate migrations locally:
-   - `supabase db push --db-url $LOCAL_SUPABASE_DB_URL`
-   - `supabase db lint --db-url $LOCAL_SUPABASE_DB_URL`
-5. Lint, typecheck, build:
-   - `npm run lint`
-   - `npm run typecheck`
-   - `npm run build`
-6. Push migrations to staging database:
-   - `supabase db push --db-url $SUPABASE_DB_URL`
-7. Seed the staging database:
-   - `psql "$SUPABASE_DB_URL" -f supabase/seed.sql`
-8. Deploy to Vercel via CLI:
-   - `vercel pull --environment=production`
-   - `vercel build --prod`
-   - `vercel deploy --prebuilt --prod`
-9. Health check:
-   - `GET https://rdk-staging.vercel.app/api/healthz`
+Create `stg_ci` and `prd_ci` Doppler configs. Each contains its environment's `SUPABASE_DB_URL`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`. Generate one read-only service token from each config for the matching GitHub environment.
 
-## Production workflow (validate-and-deploy)
+Create Sensitive Doppler syncs from `stg` to the staging Vercel project's Production environment and from `prd` to the production Vercel project's Production environment. Vercel builds uploaded source inside the target project, where those Sensitive variables are available without exposing them to GitHub.
 
-Single job: `validate-and-deploy`
+Disconnect Git auto-deployment on both Vercel projects so GitHub Actions is the only deployment path.
 
-Steps:
+## Production release
 
-1. Checkout
-2. Setup Node + `npm ci`
-3. Install Supabase CLI
-4. Validate migrations locally:
-   - `supabase db push --db-url $LOCAL_SUPABASE_DB_URL`
-   - `supabase db lint --db-url $LOCAL_SUPABASE_DB_URL`
-5. Lint, typecheck, build:
-   - `npm run lint`
-   - `npm run typecheck`
-   - `npm run build`
-6. Push migrations to production database:
-   - `supabase db push --db-url $SUPABASE_DB_URL`
-7. Deploy to Vercel via CLI:
-   - `vercel pull --environment=production`
-   - `vercel build --prod`
-   - `vercel deploy --prebuilt --prod`
-8. Health check:
-   - `GET $DEPLOYMENT_URL/api/healthz` (from deploy output)
+Create a GitHub release from the verified `main` commit:
 
-## Required secrets
+```powershell
+gh release create v1.2.3 --target main --generate-notes
+```
 
-- See `src/config/ci-env.ts` for CI-required variables.
-- Staging and production also require environment-specific secrets defined in the workflow files.
+The production workflow rejects noncanonical versions and tags outside `main` history. Never move or rewrite a released tag.
+
+## Reruns and recovery
+
+GitHub reruns jobs, not steps. From a workflow run, select **Re-run jobs -> Re-run failed jobs**, or use `gh run rerun RUN_ID --failed`. A repeated migration is safe because Supabase applies only migrations absent from its migration-history table.
+
+If staging fails, do not create a production tag. If production deployment or readiness fails, restore the previously verified deployment from Vercel, retain the failed tag for diagnosis, and ship a new patch version after repair.
+
+The `/api/healthz` endpoint verifies process liveness. Deployment gates use `/api/readyz` because it also verifies Supabase and Redis.
+
+The `staging` Git branch is obsolete after the first verified `main` deployment. Deleting it requires a separate explicit confirmation.
