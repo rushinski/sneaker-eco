@@ -1,0 +1,52 @@
+name: Pull Request CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-public-key
+      SUPABASE_SECRET_KEY: ci-secret-key
+      UPSTASH_REDIS_REST_URL: https://example.invalid
+      UPSTASH_REDIS_REST_TOKEN: ci-redis-token
+      ADMIN_SESSION_SECRET: ci-admin-session-secret
+      LIGHTSPEED_ACCESS_TOKEN: ci-lightspeed-token
+      LIGHTSPEED_DOMAIN_PREFIX: ci-store
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.14.1
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build without deployment credentials
+        run: npx next build
