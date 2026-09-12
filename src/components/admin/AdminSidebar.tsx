@@ -9,7 +9,6 @@ import {
   Bell,
   LayoutDashboard,
   Package,
-  Truck,
   BarChart3,
   Settings,
   MessageCircle,
@@ -41,7 +40,7 @@ type NavGroupItem = {
   type: "group";
   label: string;
   icon: LucideIcon;
-  groupKey: "analytics" | "orders" | "settings";
+  groupKey: "analytics" | "settings";
   isActive: (pathname: string) => boolean;
   children: Array<{ href: string; label: string }>;
 };
@@ -61,28 +60,9 @@ const navItems: Array<NavLinkItem | NavGroupItem> = [
     icon: BarChart3,
     groupKey: "analytics",
     isActive: (pathname: string) => pathname.startsWith("/admin/analytics"),
-    children: [
-      { href: "/admin/analytics/traffic", label: "Traffic" },
-      { href: "/admin/analytics/financials", label: "Financials" },
-    ],
+    children: [{ href: "/admin/analytics/traffic", label: "Traffic" }],
   },
-  {
-    type: "group",
-    label: "Activity",
-    icon: Truck,
-    groupKey: "orders",
-    isActive: (pathname: string) =>
-      pathname.startsWith("/admin/transactions") ||
-      pathname.startsWith("/admin/customers") ||
-      pathname.startsWith("/admin/shipping") ||
-      pathname.startsWith("/admin/pickups"),
-    children: [
-      { href: "/admin/transactions", label: "Transactions" },
-      { href: "/admin/customers", label: "Customers" },
-      { href: "/admin/shipping", label: "Shipping" },
-      { href: "/admin/pickups", label: "Pickups" },
-    ],
-  },
+  { type: "link", href: "/admin/customers", label: "Customers", icon: User },
   { type: "link", href: "/admin/bank", label: "Bank", icon: Landmark },
   { type: "link", href: "/admin/nexus", label: "Tax & Nexus", icon: Receipt },
   { type: "link", href: "/admin/featured-items", label: "Featured Items", icon: Star }, // ADD THIS LINE
@@ -94,10 +74,7 @@ const navItems: Array<NavLinkItem | NavGroupItem> = [
     groupKey: "settings",
     isActive: (pathname: string) => pathname.startsWith("/admin/settings"),
     children: [
-      { href: "/admin/settings/lightspeed", label: "Lightspeed" },
       { href: "/admin/settings/store-access", label: "Store Access" },
-      { href: "/admin/settings/shipping", label: "Shipping" },
-      { href: "/admin/settings/taxes", label: "Taxes" },
       { href: "/admin/settings/transfers", label: "Bank" },
     ],
   },
@@ -117,16 +94,8 @@ export function AdminSidebar({
   const chatLastSenderRef = useRef(new Map<string, "customer" | "admin" | "none">());
   const pathname = usePathname();
 
-  const analyticsActive = pathname.startsWith("/admin/analytics");
-  const ordersActive =
-    pathname.startsWith("/admin/transactions") ||
-    pathname.startsWith("/admin/customers") ||
-    pathname.startsWith("/admin/shipping") ||
-    pathname.startsWith("/admin/pickups");
-  const settingsActive = pathname.startsWith("/admin/settings");
   const [openGroups, setOpenGroups] = useState({
     analytics: false,
-    orders: false,
     settings: false,
   });
 
@@ -143,25 +112,25 @@ export function AdminSidebar({
     };
   }, [isOpen]);
 
-  const refreshNotifCount = async () => {
-    try {
-      const res = await fetch("/api/admin/notifications/unread-count", {
-        cache: "no-store",
-      });
-      if (!res.ok) {
-        return;
-      }
-      const data = await res.json();
-      if (typeof data.unreadCount === "number") {
-        setNotifBadgeCount(data.unreadCount);
-      }
-    } catch {
-      // keep last value; do not force 0
-    }
-  };
-
   useEffect(() => {
-    refreshNotifCount();
+    const refreshNotifCount = async () => {
+      try {
+        const res = await fetch("/api/admin/notifications/unread-count", {
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          return;
+        }
+        const data = await res.json();
+        if (typeof data.unreadCount === "number") {
+          setNotifBadgeCount(data.unreadCount);
+        }
+      } catch {
+        // keep last value; do not force 0
+      }
+    };
+
+    void refreshNotifCount();
 
     const onUpdated = (e: Event) => {
       const evt = e as CustomEvent;
@@ -174,19 +143,6 @@ export function AdminSidebar({
     window.addEventListener("adminNotificationsUpdated", onUpdated);
     return () => window.removeEventListener("adminNotificationsUpdated", onUpdated);
   }, []);
-
-  // Auto-open group when you're inside it
-  useEffect(() => {
-    if (analyticsActive) {
-      setOpenGroups((prev) => ({ ...prev, analytics: true }));
-    }
-    if (ordersActive) {
-      setOpenGroups((prev) => ({ ...prev, orders: true }));
-    }
-    if (settingsActive) {
-      setOpenGroups((prev) => ({ ...prev, settings: true }));
-    }
-  }, [analyticsActive, ordersActive, settingsActive]);
 
   useEffect(() => {
     let isActive = true;
@@ -222,7 +178,7 @@ export function AdminSidebar({
       }
     };
 
-    loadChatBadge();
+    void loadChatBadge();
 
     const supabase = createSupabaseBrowserClient();
     const channel = supabase
@@ -290,11 +246,11 @@ export function AdminSidebar({
 
     return () => {
       isActive = false;
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
   }, []);
 
-  function SidebarContent() {
+  function renderSidebarContent() {
     const canViewBankTab = canViewBank(role);
     const baseItemClass =
       "group flex items-center gap-3 px-4 py-3 border border-transparent bg-transparent " +
@@ -372,7 +328,7 @@ export function AdminSidebar({
               // group
               const icon = item.icon;
               const isGroupActive = item.isActive(pathname);
-              const isGroupOpen = openGroups[item.groupKey];
+              const isGroupOpen = openGroups[item.groupKey] || isGroupActive;
               const chevron = isGroupOpen ? ChevronDown : ChevronRight;
 
               const filteredChildren = item.children.filter(
@@ -505,10 +461,7 @@ export function AdminSidebar({
             </div>
           </div>
 
-          <AdminNotificationsDrawer
-            isOpen={notifOpen}
-            onClose={() => setNotifOpen(false)}
-          />
+          {notifOpen && <AdminNotificationsDrawer onClose={() => setNotifOpen(false)} />}
         </div>
       </div>
     );
@@ -537,16 +490,14 @@ export function AdminSidebar({
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 min-h-0">
-              <SidebarContent />
-            </div>
+            <div className="flex-1 min-h-0">{renderSidebarContent()}</div>
           </div>
         </div>
       )}
 
       <aside className="hidden md:block fixed left-0 top-0 w-64 h-screen bg-zinc-900 border-r border-zinc-800/70 p-6 z-40">
         <h2 className="text-2xl font-bold text-white mb-8">Admin</h2>
-        <SidebarContent />
+        {renderSidebarContent()}
       </aside>
     </>
   );

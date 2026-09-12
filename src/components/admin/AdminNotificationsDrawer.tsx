@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 
@@ -8,11 +8,10 @@ import { logError } from "@/lib/utils/log";
 
 type AdminNotification = {
   id: string;
-  type: "order_placed" | "chat_message";
+  type: "chat_message";
   message: string;
   created_at: string;
   read_at: string | null;
-  order_id?: string | null;
   chat_id?: string | null;
 };
 
@@ -25,9 +24,6 @@ const formatTime = (value: string) => {
 };
 
 const getNotificationHref = (n: AdminNotification) => {
-  if (n.type === "order_placed" && n.order_id) {
-    return "/admin/sales";
-  }
   if (n.chat_id) {
     return `/admin/chats?chatId=${n.chat_id}`;
   }
@@ -35,7 +31,6 @@ const getNotificationHref = (n: AdminNotification) => {
 };
 
 type Props = {
-  isOpen: boolean;
   onClose: () => void;
 };
 
@@ -53,13 +48,13 @@ function emitUnreadCountUpdated(unreadCount: number) {
   );
 }
 
-export function AdminNotificationsDrawer({ isOpen, onClose }: Props) {
+export function AdminNotificationsDrawer({ onClose }: Props) {
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // prevent unread count flash before first load
   const [unreadCountServer, setUnreadCountServer] = useState<number | null>(null);
-  const loadedOnceRef = useRef(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   const unreadCountLocal = useMemo(
     () => notifications.filter((n) => !n.read_at).length,
@@ -67,7 +62,6 @@ export function AdminNotificationsDrawer({ isOpen, onClose }: Props) {
   );
 
   const load = async () => {
-    setIsLoading(true);
     try {
       const res = await fetch(`/api/admin/notifications?limit=20&page=1`, {
         cache: "no-store",
@@ -85,7 +79,7 @@ export function AdminNotificationsDrawer({ isOpen, onClose }: Props) {
       if (typeof data.unreadCount === "number") {
         emitUnreadCountUpdated(data.unreadCount);
       }
-      loadedOnceRef.current = true;
+      setHasLoaded(true);
     } catch (error) {
       logError(error, { layer: "frontend", event: "admin_load_notifications_drawer" });
     } finally {
@@ -94,15 +88,33 @@ export function AdminNotificationsDrawer({ isOpen, onClose }: Props) {
   };
 
   useEffect(() => {
-    if (isOpen) {
-      load();
-    }
-  }, [isOpen]);
+    const loadInitial = async () => {
+      try {
+        const res = await fetch(`/api/admin/notifications?limit=20&page=1`, {
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          return;
+        }
+        const data = (await res.json()) as ListResponse;
+        setNotifications(data.notifications ?? []);
+        setUnreadCountServer(
+          typeof data.unreadCount === "number" ? data.unreadCount : null,
+        );
+        if (typeof data.unreadCount === "number") {
+          emitUnreadCountUpdated(data.unreadCount);
+        }
+        setHasLoaded(true);
+      } catch (error) {
+        logError(error, { layer: "frontend", event: "admin_load_notifications_drawer" });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void loadInitial();
+  }, []);
 
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
@@ -110,7 +122,7 @@ export function AdminNotificationsDrawer({ isOpen, onClose }: Props) {
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [isOpen, onClose]);
+  }, [onClose]);
 
   const markRead = async (id: string) => {
     try {
@@ -159,11 +171,7 @@ export function AdminNotificationsDrawer({ isOpen, onClose }: Props) {
     }
   };
 
-  if (!isOpen) {
-    return null;
-  }
-
-  const showUnread = unreadCountServer !== null && loadedOnceRef.current;
+  const showUnread = unreadCountServer !== null && hasLoaded;
 
   return (
     <div className="fixed inset-0 z-50">
@@ -178,7 +186,7 @@ export function AdminNotificationsDrawer({ isOpen, onClose }: Props) {
             <div>
               <h2 className="text-2xl font-bold text-white">Notifications</h2>
               <p className="text-xs text-zinc-500 mt-1">
-                {isLoading && !loadedOnceRef.current
+                {isLoading && !hasLoaded
                   ? "Loading..."
                   : showUnread
                     ? `Unread: ${unreadCountServer}`
@@ -199,6 +207,7 @@ export function AdminNotificationsDrawer({ isOpen, onClose }: Props) {
             <button
               type="button"
               onClick={() => {
+                setIsLoading(true);
                 void load();
               }}
               className="text-xs text-zinc-400 hover:text-white"
@@ -227,7 +236,7 @@ export function AdminNotificationsDrawer({ isOpen, onClose }: Props) {
             </div>
           </div>
 
-          {isLoading && !loadedOnceRef.current ? (
+          {isLoading && !hasLoaded ? (
             <div className="text-sm text-zinc-500 py-8 text-center">
               Loading notifications...
             </div>
@@ -244,7 +253,7 @@ export function AdminNotificationsDrawer({ isOpen, onClose }: Props) {
                   onClick={() => {
                     onClose();
                     if (!n.read_at) {
-                      markRead(n.id);
+                      void markRead(n.id);
                     }
                   }}
                   className={`block min-w-0 border border-zinc-800/70 bg-zinc-950 hover:bg-zinc-900 transition px-4 py-3 rounded-sm ${

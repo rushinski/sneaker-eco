@@ -8,11 +8,10 @@ import { logError } from "@/lib/utils/log";
 
 type AdminNotification = {
   id: string;
-  type: "order_placed" | "chat_message";
+  type: "chat_message";
   message: string;
   created_at: string;
   read_at: string | null;
-  order_id?: string | null;
   chat_id?: string | null;
 };
 
@@ -25,9 +24,6 @@ const formatTime = (value: string) => {
 };
 
 const getNotificationHref = (notification: AdminNotification) => {
-  if (notification.type === "order_placed" && notification.order_id) {
-    return "/admin/sales";
-  }
   if (notification.chat_id) {
     return `/admin/chats?chatId=${notification.chat_id}`;
   }
@@ -68,12 +64,6 @@ export function AdminNotificationCenter({ placement = "top" }: Props) {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (isOpen) {
-      loadNotifications();
-    }
-  }, [isOpen]);
 
   // Close on outside click + Esc (prevents weird stuck popovers)
   useEffect(() => {
@@ -160,7 +150,13 @@ export function AdminNotificationCenter({ placement = "top" }: Props) {
     >
       <button
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => {
+          const nextIsOpen = !isOpen;
+          setIsOpen(nextIsOpen);
+          if (nextIsOpen) {
+            void loadNotifications();
+          }
+        }}
         className="relative flex items-center justify-center w-10 h-10 border border-zinc-800/70 bg-zinc-950 hover:bg-zinc-900 transition-colors rounded-sm"
         aria-label="Notifications"
         data-testid="admin-notifications-toggle"
@@ -205,7 +201,7 @@ export function AdminNotificationCenter({ placement = "top" }: Props) {
                   onClick={() => {
                     setIsOpen(false);
                     if (!notification.read_at) {
-                      markRead(notification.id);
+                      void markRead(notification.id);
                     }
                   }}
                   className={`block min-w-0 px-4 py-3 border-b border-zinc-900/70 hover:bg-zinc-900 transition ${

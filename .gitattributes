@@ -1,0 +1,17 @@
+# Normalize text files and enforce Unix line endings
+* text=auto eol=lf
+
+# Windows-native scripts
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary

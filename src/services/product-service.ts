@@ -42,7 +42,6 @@ export interface ProductCreateInput {
   condition: Condition;
   size_type: ProductRow["size_type"];
   description?: string | null;
-  shipping_price_cents?: number | null;
   go_live_at?: string;
   variants: VariantInput[];
   images: ImageInput[];
@@ -125,7 +124,6 @@ export class ProductService {
       condition: input.condition,
       size_type: input.size_type,
       description: input.description || null,
-      shipping_price_cents: input.shipping_price_cents ?? null,
       go_live_at: this.normalizeGoLiveAt(input.go_live_at),
       is_active: true,
       excluded_auto_tag_keys: input.excluded_auto_tag_keys ?? [],
@@ -208,7 +206,6 @@ export class ProductService {
       condition: input.condition,
       size_type: input.size_type,
       description: input.description || null,
-      shipping_price_cents: input.shipping_price_cents ?? null,
       go_live_at: goLiveAt,
       excluded_auto_tag_keys: input.excluded_auto_tag_keys ?? [],
       product_updated_at: new Date().toISOString(),
@@ -358,7 +355,6 @@ export class ProductService {
       condition: original.condition,
       size_type: original.size_type,
       description: original.description || undefined,
-      shipping_price_cents: original.shipping_price_cents ?? null,
       go_live_at: original.go_live_at ?? undefined,
       brand_override_id: undefined,
       model_override_id: undefined,

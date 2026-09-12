@@ -2,7 +2,6 @@
 import { z } from "zod";
 
 const CATEGORY_VALUES = ["sneakers", "clothing", "accessories", "electronics"] as const;
-// Website condition values stay as-is; outbound Lightspeed sync maps "used" to "preowned".
 const CONDITION_VALUES = ["new", "used"] as const;
 const SIZE_TYPE_VALUES = ["shoe", "clothing", "custom", "none"] as const;
 const STOCK_STATUS_VALUES = ["in_stock", "out_of_stock", "archived", "all"] as const;
@@ -67,7 +66,6 @@ export const productCreateSchema = z
     condition: z.enum(CONDITION_VALUES),
     size_type: z.enum(SIZE_TYPE_VALUES),
     description: z.string().trim().min(1).nullable().optional(),
-    shipping_price_cents: z.number().int().nonnegative().nullable().optional(),
     variants: z.array(variantSchema).min(1),
     images: z.array(imageSchema),
     go_live_at: z.string().datetime({ offset: true }).optional(),

@@ -21,6 +21,7 @@ export class AdminNotificationsRepository {
       .from("admin_notifications")
       .select("*")
       .eq("admin_id", adminId)
+      .eq("type", "chat_message")
       .order("created_at", { ascending: false })
       .order("id", { ascending: false });
 
@@ -47,6 +48,7 @@ export class AdminNotificationsRepository {
       .from("admin_notifications")
       .select("id", { count: "exact", head: true })
       .eq("admin_id", adminId)
+      .eq("type", "chat_message")
       .is("read_at", null);
 
     if (error) {
@@ -78,6 +80,7 @@ export class AdminNotificationsRepository {
       .from("admin_notifications")
       .update({ read_at: new Date().toISOString() })
       .eq("admin_id", adminId)
+      .eq("type", "chat_message")
       .in("id", notificationIds)
       .select();
 
@@ -109,6 +112,7 @@ export class AdminNotificationsRepository {
       .from("admin_notifications")
       .delete()
       .eq("admin_id", adminId)
+      .eq("type", "chat_message")
       .in("id", ids)
       .select();
 

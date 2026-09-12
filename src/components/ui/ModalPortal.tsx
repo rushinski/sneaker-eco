@@ -1,7 +1,7 @@
 // src/components/ui/ModalPortal.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 type Props = {
@@ -12,6 +12,8 @@ type Props = {
   zIndex?: number;
 };
 
+const subscribeToHydration = () => () => {};
+
 export function ModalPortal({
   open,
   onClose,
@@ -19,9 +21,11 @@ export function ModalPortal({
   zIndexClassName = "z-[9999]",
   zIndex,
 }: Props) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
 
   // optional: lock body scroll while open
   useEffect(() => {

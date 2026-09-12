@@ -43,7 +43,6 @@ export function ScrollHeader({
   useEffect(() => {
     // If auth route, don't attach listeners and keep it visible state reset
     if (hideHeader) {
-      setIsVisible(true);
       lastScrollYRef.current = 0;
       return;
     }

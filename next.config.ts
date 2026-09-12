@@ -43,10 +43,6 @@ const nextConfig = {
         protocol: "https",
         hostname: "*.fastly.net",
       } as const,
-      {
-        protocol: "https",
-        hostname: "cdn.shoplightspeed.com",
-      } as const,
     ],
   },
 

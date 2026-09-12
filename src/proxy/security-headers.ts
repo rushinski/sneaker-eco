@@ -2,11 +2,10 @@
 import type { NextResponse } from "next/server";
 
 import { security } from "@/config/security";
-import { env } from "@/config/env";
 
 export function applySecurityHeaders(
   response: NextResponse,
-  nodeEnv: string = env.NODE_ENV ?? "development",
+  nodeEnv: string = process.env.NODE_ENV ?? "development",
 ): void {
   const isDev = nodeEnv !== "production";
   const { securityHeaders } = security.proxy;

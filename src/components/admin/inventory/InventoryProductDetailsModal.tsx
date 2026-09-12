@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 
 import { ModalPortal } from "@/components/ui/ModalPortal";
 import type { ProductWithDetails, ProductVariantRow } from "@/types/domain/product";
@@ -48,7 +49,6 @@ export function InventoryProductDetailsModal({
     if (!open) {
       return;
     }
-    setSelectedImageIndex(0);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
@@ -119,9 +119,12 @@ export function InventoryProductDetailsModal({
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div className="flex flex-col gap-3">
               <div className="flex h-[260px] items-center justify-center overflow-hidden rounded border border-zinc-800 bg-zinc-900/50">
-                <img
+                <Image
                   src={activeImage}
                   alt={title}
+                  width={520}
+                  height={260}
+                  unoptimized
                   className="h-full w-full object-contain p-2"
                 />
               </div>
@@ -138,9 +141,12 @@ export function InventoryProductDetailsModal({
                           : "border-zinc-800 opacity-70 hover:opacity-100"
                       }`}
                     >
-                      <img
+                      <Image
                         src={image.url ?? ""}
                         alt={`Image ${index + 1}`}
+                        width={48}
+                        height={48}
+                        unoptimized
                         className="h-full w-full object-cover"
                       />
                     </button>

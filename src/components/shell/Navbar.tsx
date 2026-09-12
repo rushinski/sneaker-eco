@@ -1,9 +1,9 @@
 // src/components/shell/Navbar.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -137,6 +137,8 @@ const BRAND_LOGOS: Record<string, { default: string; hover: string }> = {
   },
 };
 
+const subscribeToHydration = () => () => {};
+
 export function Navbar({
   isAuthenticated = false,
   userEmail,
@@ -144,6 +146,7 @@ export function Navbar({
   role = null,
 }: NavbarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const {
     user,
     role: sessionRole,
@@ -155,7 +158,11 @@ export function Navbar({
   const [brandGroups, setBrandGroups] = useState<Array<{ key: string; label: string }>>(
     [],
   );
-  const [isMounted, setIsMounted] = useState(false);
+  const isMounted = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
 
   // Build auth URLs with current page as "next" parameter
   const loginUrl = useMemo(() => {
@@ -171,10 +178,6 @@ export function Navbar({
     }
     return `/auth/register?next=${encodeURIComponent(pathname)}`;
   }, [pathname]);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   // OPTIMIZATION: Session fetching removed - now using SessionContext from layout
   // This eliminates duplicate /api/auth/session calls on every route change
@@ -192,7 +195,7 @@ export function Navbar({
       }
     };
 
-    loadBrandGroups();
+    void loadBrandGroups();
   }, []);
 
   // Scroll lock when mobile menu is open
@@ -213,7 +216,8 @@ export function Navbar({
     await fetch("/api/auth/logout", { method: "POST" });
     // Trigger session update event for SessionContext
     window.dispatchEvent(new CustomEvent("sessionUpdate"));
-    window.location.href = "/";
+    router.push("/");
+    router.refresh();
   };
 
   const handleSearchClick = () => window.dispatchEvent(new CustomEvent("openSearch"));

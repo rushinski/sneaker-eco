@@ -62,7 +62,7 @@ function naturalSort(a: string, b: string): number {
 }
 
 // Memoized brand item - FIXED: Exact same height for all brands
-const BrandItem = memo(function BrandItem({
+const BrandItem = memo(function BrandItemComponent({
   brand,
   isSelected,
   isExpanded,
@@ -146,7 +146,7 @@ const BrandItem = memo(function BrandItem({
   );
 });
 
-export const VirtualizedBrandList = memo(function VirtualizedBrandList({
+export const VirtualizedBrandList = memo(function VirtualizedBrandListComponent({
   brands,
   selectedBrands,
   expandedBrands,

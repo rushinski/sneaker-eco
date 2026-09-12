@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { createPortal } from "react-dom";
 
 type TooltipSide = "top" | "bottom" | "left" | "right";
@@ -14,6 +21,8 @@ type TooltipProps = {
   fullWidth?: boolean; // ✅ important for grid usage
 };
 
+const subscribeToHydration = () => () => {};
+
 export function Tooltip({
   label,
   side = "top",
@@ -24,12 +33,14 @@ export function Tooltip({
 }: TooltipProps) {
   const anchorRef = useRef<HTMLSpanElement | null>(null);
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
-  useEffect(() => setMounted(true), []);
-
-  const compute = () => {
+  const compute = useCallback(() => {
     const el = anchorRef.current;
     if (!el) {
       return;
@@ -57,7 +68,7 @@ export function Tooltip({
     }
 
     setPos({ top, left });
-  };
+  }, [offset, side]);
 
   const show = () => {
     if (disabled) {
@@ -81,7 +92,7 @@ export function Tooltip({
       window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", onResize);
     };
-  }, [open]);
+  }, [compute, open]);
 
   const transform = useMemo(() => {
     if (side === "top") {

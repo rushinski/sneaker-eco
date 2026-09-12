@@ -9,6 +9,7 @@ yarn-error*/
 out/
 dist/
 .build/
+next-env.d.ts
 
 # Environment Variables (critical)
 .env
@@ -19,7 +20,6 @@ dist/
 supabase/.temp/
 supabase/.branches/
 supabase/.metadata
-supabase/config.toml
 supabase/.env
 supabase/migrations/*-shadow.sql   # shadow migrations (local-only)
 
@@ -73,3 +73,12 @@ docker-storage/
 *.tgz
 
 .vercel
+
+# Local Git worktrees
+.worktrees/
+
+# developer tools
+.superpowers/
+.codegraph/
+
+.swc/

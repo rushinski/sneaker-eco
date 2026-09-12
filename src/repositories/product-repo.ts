@@ -112,25 +112,6 @@ type VariantWithProduct = {
   };
 };
 
-type CheckoutProductRow = {
-  id: string;
-  name: string;
-  brand: string;
-  model: string | null;
-  category: string;
-  condition: string;
-  tenant_id: string | null;
-  shipping_price_cents: number | null;
-  variants?: Array<{
-    id: string;
-    sku: string;
-    size_label: string;
-    sale_price_cents: number;
-    unit_cost_cents: number;
-    stock: number;
-  }>;
-};
-
 type CartVariantRow = {
   id: string;
   product_id: string;
@@ -153,6 +134,13 @@ type ProductImageRow = {
   url: string;
   is_primary: boolean;
   sort_order: number;
+};
+
+type SearchCandidateRow = {
+  id: string;
+  brand: string | null;
+  name: string | null;
+  model: string | null;
 };
 
 export class ProductRepository {
@@ -343,7 +331,9 @@ export class ProductRepository {
       inventoryUnitTotal = 0;
     } else {
       // Build the base query with all filters
-      let baseQuery = this.supabase.from("products").select("id", { count: "exact" });
+      let baseQuery = this.supabase
+        .from("products")
+        .select("id, brand, name, model", { count: "exact" });
 
       baseQuery = baseQuery.eq("is_active", true);
       baseQuery = this.applyArchivedFilter(baseQuery, archivedStatus);
@@ -425,7 +415,7 @@ export class ProductRepository {
         throw error;
       }
 
-      ids = (data ?? []).map((row: { id: string }) => row.id);
+      const candidateRows = (data ?? []) as SearchCandidateRow[];
       total = count ?? 0;
       skuTotal =
         searchMode === "inventory"
@@ -445,6 +435,20 @@ export class ProductRepository {
               nowIso,
             })
           : 0;
+
+      if (!hasSearchQuery) {
+        ids = candidateRows.map((row) => row.id);
+      } else {
+        const candidatesWithScores = candidateRows.map((row) => ({
+          row,
+          score: this.calculateSearchRelevance(row, filters.q, searchFields),
+        }));
+
+        candidatesWithScores.sort((a, b) => b.score - a.score);
+        ids = candidatesWithScores
+          .slice(offset, offset + limit)
+          .map((candidate) => candidate.row.id);
+      }
     }
     if (ids.length === 0) {
       return { products: [], total, skuTotal, inventoryUnitTotal, page, limit };
@@ -490,22 +494,9 @@ export class ProductRepository {
       ]),
     );
 
-    let products = ids.map((id) => byId.get(id)).filter(Boolean) as ProductWithDetails[];
-
-    // Apply relevance sorting for searches with query (both inventory and storefront)
-    if (filters.q?.trim()) {
-      const productsWithScores = products.map((product) => ({
-        product,
-        score: this.calculateSearchRelevance(product, filters.q, searchFields),
-      }));
-
-      // Sort by relevance score (highest first)
-      productsWithScores.sort((a, b) => b.score - a.score);
-
-      // Apply pagination AFTER scoring
-      const paginatedScores = productsWithScores.slice(offset, offset + limit);
-      products = paginatedScores.map((item) => item.product);
-    }
+    const products = ids
+      .map((id) => byId.get(id))
+      .filter(Boolean) as ProductWithDetails[];
 
     return {
       products,
@@ -788,6 +779,26 @@ export class ProductRepository {
     }
 
     return this.transformProduct(data as ProductWithRelations);
+  }
+
+  async getVariantBySku(tenantId: string, sku: string) {
+    const normalizedSku = sku.trim();
+    if (!normalizedSku) {
+      return null;
+    }
+
+    const { data, error } = await this.supabase
+      .from("product_variants")
+      .select("id, product_id, sku")
+      .eq("tenant_id", tenantId)
+      .eq("sku", normalizedSku)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    return (data ?? null) as Pick<VariantRow, "id" | "product_id" | "sku"> | null;
   }
 
   async findByTitleAndCategory(
@@ -1405,7 +1416,7 @@ export class ProductRepository {
    * Higher scores indicate better matches.
    */
   private calculateSearchRelevance(
-    product: ProductRow,
+    product: Pick<ProductRow, "brand" | "name" | "model"> | SearchCandidateRow,
     searchQuery: string | undefined,
     searchFields: string[],
   ): number {
@@ -1423,7 +1434,7 @@ export class ProductRepository {
 
     // Helper to get field values
     const getFieldValue = (field: string): string => {
-      const value = product[field as keyof ProductRow];
+      const value = product[field as keyof typeof product];
       return String(value ?? "").toLowerCase();
     };
 
@@ -1686,63 +1697,6 @@ export class ProductRepository {
     }
 
     return Array.from(productIds);
-  }
-
-  async getProductsForCheckout(productIds: string[]): Promise<
-    Array<{
-      id: string;
-      name: string;
-      brand: string;
-      model: string | null;
-      titleDisplay: string;
-      category: string;
-      condition: string;
-      tenantId: string | null;
-      shippingPriceCents: number | null;
-      variants: Array<{
-        id: string;
-        sku: string;
-        sizeLabel: string;
-        salePriceCents: number;
-        unitCostCents: number;
-        stock: number;
-      }>;
-    }>
-  > {
-    const nowIso = new Date().toISOString();
-    const { data, error } = await this.supabase
-      .from("products")
-      .select(
-        "id, name, brand, model, category, condition, tenant_id, shipping_price_cents, variants:product_variants(id, sku, size_label, sale_price_cents, unit_cost_cents, stock)",
-      )
-      .in("id", productIds)
-      .eq("is_active", true)
-      .eq("is_out_of_stock", false)
-      .lte("go_live_at", nowIso);
-
-    if (error) {
-      throw error;
-    }
-
-    return (data ?? []).map((p: CheckoutProductRow) => ({
-      id: p.id,
-      name: p.name,
-      brand: p.brand,
-      model: p.model ?? null,
-      titleDisplay: p.name,
-      category: p.category,
-      condition: p.condition,
-      tenantId: p.tenant_id ?? null,
-      shippingPriceCents: p.shipping_price_cents ?? null,
-      variants: (p.variants ?? []).map((v) => ({
-        id: v.id,
-        sku: v.sku,
-        sizeLabel: v.size_label,
-        salePriceCents: v.sale_price_cents,
-        unitCostCents: v.unit_cost_cents,
-        stock: v.stock,
-      })),
-    }));
   }
 
   async getVariantsForCart(variantIds: string[]): Promise<CartVariantDetails[]> {

@@ -1,166 +1,116 @@
-name: Staging CI
+name: Staging Deployment
 
 on:
   push:
     branches:
-      - staging
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
 
 jobs:
-  validate-and-deploy:
+  validate:
     runs-on: ubuntu-latest
-    environment: staging
-
-    services:
-      # Local PostgreSQL for migration validation
-      supabase-db:
-        image: public.ecr.aws/supabase/postgres:17.6.1.043
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    env:
-      # Vercel
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }} 
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_STAGING_PROJECT_ID }}
-
-      # Supabase
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
-      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-
-      # Shippo
-      SHIPPO_API_TOKEN: ${{ secrets.SHIPPO_API_TOKEN }}
-      SHIPPO_WEBHOOK_TOKEN: ${{ secrets.SHIPPO_WEBHOOK_TOKEN }}
-
-      # Upstash Redis
-      UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
-      UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
-
-      # Auth
-      ADMIN_SESSION_SECRET: ${{ secrets.ADMIN_SESSION_SECRET }}
-      ORDER_ACCESS_TOKEN_SECRET: ${{ secrets.ORDER_ACCESS_TOKEN_SECRET }}
-
-      # Google OAuth
-      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-
-      # AWS SES
-      SES_SMTP_HOST: ${{ secrets.SES_SMTP_HOST }}
-      SES_SMTP_USER: ${{ secrets.SES_SMTP_USER }}
-      SES_SMTP_PASS: ${{ secrets.SES_SMTP_PASS }}
-      SES_FROM_EMAIL: ${{ secrets.SES_FROM_EMAIL }}
-      SES_FROM_NAME: ${{ secrets.SES_FROM_NAME }}
-      SUPPORT_INBOX_EMAIL: ${{ secrets.SUPPORT_INBOX_EMAIL }}
-
-      # AWS
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-      # HERE
-      HERE_MAPS_API_KEY: ${{ secrets.HERE_MAPS_API_KEY }}
-
-      PAYRILLA_API_URL: ${{ secrets.PAYRILLA_API_URL }}
-      PAYRILLA_SOURCE_KEY: ${{ secrets.PAYRILLA_SOURCE_KEY }}
-      PAYRILLA_PIN: ${{ secrets.PAYRILLA_PIN }}
-      PAYRILLA_TOKEN: ${{ secrets.PAYRILLA_TOKEN }}
-      PAYRILLA_WEBHOOK: ${{ secrets.PAYRILLA_WEBHOOK }}
-      NEXT_PUBLIC_PAYRILLA_TOKENIZATION_URL: ${{ secrets.NEXT_PUBLIC_PAYRILLA_TOKENIZATION_URL }}
-
-      NOFRAUD_API_KEY: ${{ secrets.NOFRAUD_API_KEY }}
-      NEXT_PUBLIC_NOFRAUD_CUSTOMER_CODE: ${{ secrets.NEXT_PUBLIC_NOFRAUD_CUSTOMER_CODE}}
-      ZIPTAX_API_KEY: ${{ secrets.ZIPTAX_API_KEY }}
-
-      # Public Config (can use variables instead of secrets)
-      NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://rdk-staging.vercel.app' }}
-      NEXT_PUBLIC_GUEST_CHECKOUT_ENABLED: ${{ vars.NEXT_PUBLIC_GUEST_CHECKOUT_ENABLED || 'true' }}
-
-      LIGHTSPEED_ACCESS_TOKEN: ${{ secrets.LIGHTSPEED_ACCESS_TOKEN }}
-      LIGHTSPEED_DOMAIN_PREFIX: ${{ secrets.LIGHTSPEED_DOMAIN_PREFIX }}
-
-      # Local DB for validation
-      LOCAL_SUPABASE_DB_URL: "postgresql://postgres:postgres@localhost:5432/postgres"
-
+    timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 20
+          node-version: 24.14.1
           cache: npm
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: npm ci
 
-      # Database Migration Validation
-      - name: Install Supabase CLI
-        uses: supabase/setup-cli@v1
+      - name: Check formatting
+        run: npm run format:check
 
-      - name: Validate Migrations Locally
-        run: |
-          # Apply migrations to local DB to verify they work
-          supabase db push --db-url "$LOCAL_SUPABASE_DB_URL"
-          # Lint the schema for common issues
-          supabase db lint --db-url "$LOCAL_SUPABASE_DB_URL"
-
-      # Code Quality
       - name: Lint
         run: npm run lint
 
       - name: Typecheck
         run: npm run typecheck
 
-      # Build (validates env vars and Next.js config)
-      - name: Build
-        run: npm run build
+  migrate:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      # Apply Migrations to Staging Database
-      - name: Push Migrations to Staging
+      - name: Fetch staging deployment secrets
+        uses: dopplerhq/secrets-fetch-action@451892f16195f9ac360e1a5bcbf0b5fd0e957534 # v2.0.0
+        with:
+          doppler-token: ${{ secrets.DOPPLER_TOKEN }}
+          inject-env-vars: true
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
+
+      - name: Preview pending migrations
+        run: supabase db push --db-url "$SUPABASE_DB_URL" --dry-run
+
+      - name: Apply pending migrations
         run: supabase db push --db-url "$SUPABASE_DB_URL"
 
-      # Seed the Staging Database
-      - name: Seed Staging Database
-        run: |
-          echo "Seeding database..."
-          psql "$SUPABASE_DB_URL" -f supabase/seed.sql
-          echo "Database seeded successfully"
+  deploy:
+    needs: migrate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    outputs:
+      deployment_url: ${{ steps.deploy.outputs.deployment_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      # Deploy to Vercel
-      - name: Install Vercel CLI
-        run: npm i -g vercel
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.14.1
+          cache: npm
 
-      - name: Pull Vercel Environment
-        run: |
-          echo "Pulling Vercel environment configuration..."
-          vercel pull --yes --environment=production --token=$VERCEL_TOKEN
-          echo "Environment pulled successfully"
+      - name: Fetch staging deployment secrets
+        uses: dopplerhq/secrets-fetch-action@451892f16195f9ac360e1a5bcbf0b5fd0e957534 # v2.0.0
+        with:
+          doppler-token: ${{ secrets.DOPPLER_TOKEN }}
+          inject-env-vars: true
 
-      - name: Build Production Bundle
-        run: |
-          echo "Building production bundle for staging environment..."
-          vercel build --prod --token=$VERCEL_TOKEN
-          echo "Bundle built successfully"
+      - name: Pull Vercel project configuration
+        run: npx --yes vercel@59.16.0 pull --yes --environment=production --token="$VERCEL_TOKEN"
 
-      - name: Deploy to Staging
+      - name: Build and deploy staging source
         id: deploy
+        shell: bash
         run: |
-          echo "Deploying to staging..."
-          DEPLOYMENT_URL=$(vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN)
-          echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
-          echo "Deployed to: $DEPLOYMENT_URL"
+          deployment_url="$(npx --yes vercel@59.16.0 deploy --prod --yes --token="$VERCEL_TOKEN")"
+          echo "deployment_url=$deployment_url" >> "$GITHUB_OUTPUT"
 
-      # Basic Health Check
-      - name: Health Check
+  verify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check staging readiness
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ needs.deploy.outputs.deployment_url }}
         run: |
-          sleep 10  # Give deployment a moment to become available
-          curl -f "https://rdk-staging.vercel.app/api/healthz" || echo "Health check endpoint not found (optional)"
+          for attempt in 1 2 3 4 5 6; do
+            if curl --fail --silent --show-error --max-time 10 "$DEPLOYMENT_URL/api/readyz"; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 6 ]; then
+              sleep 10
+            fi
+          done
+          exit 1

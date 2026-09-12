@@ -61,7 +61,7 @@ export function StoreControls({
 
     const half = Math.floor(MAX_PAGE_BUTTONS / 2);
     let start = Math.max(1, page - half);
-    let end = Math.min(pageCount, start + MAX_PAGE_BUTTONS - 1);
+    const end = Math.min(pageCount, start + MAX_PAGE_BUTTONS - 1);
 
     if (end - start < MAX_PAGE_BUTTONS - 1) {
       start = Math.max(1, end - MAX_PAGE_BUTTONS + 1);

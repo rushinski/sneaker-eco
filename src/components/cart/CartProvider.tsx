@@ -5,10 +5,11 @@ import type { ReactNode } from "react";
 import {
   createContext,
   useContext,
-  useState,
   useEffect,
   useCallback,
+  useMemo,
   useRef,
+  useSyncExternalStore,
 } from "react";
 
 import { CartService } from "@/services/cart-service";
@@ -28,6 +29,8 @@ interface CartContextType {
 }
 
 const cartContext = createContext<CartContextType | null>(null);
+const EMPTY_CART_SNAPSHOT = "[]";
+const subscribeToHydration = () => () => {};
 
 export function CartProvider({
   children,
@@ -37,13 +40,25 @@ export function CartProvider({
   userId?: string | null;
 }) {
   const { user } = useSession();
-  const [cart] = useState(() => new CartService(userId ?? null));
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [isReady, setIsReady] = useState(false);
+  const resolvedUserId = userId ?? user?.id ?? null;
+  const cart = useMemo(() => new CartService(resolvedUserId), [resolvedUserId]);
   const didInitialValidation = useRef(false);
   const isValidatingRef = useRef(false);
-  const [resolvedUserId, setResolvedUserId] = useState<string | null>(
-    userId ?? user?.id ?? null,
+  const subscribeToCart = useCallback((onStoreChange: () => void) => {
+    window.addEventListener("cartUpdated", onStoreChange);
+    return () => window.removeEventListener("cartUpdated", onStoreChange);
+  }, []);
+  const getCartSnapshot = useCallback(() => JSON.stringify(cart.getCart()), [cart]);
+  const cartSnapshot = useSyncExternalStore(
+    subscribeToCart,
+    getCartSnapshot,
+    () => EMPTY_CART_SNAPSHOT,
+  );
+  const items = useMemo(() => JSON.parse(cartSnapshot) as CartItem[], [cartSnapshot]);
+  const isReady = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
   );
 
   const refreshCart = useCallback(async () => {
@@ -77,37 +92,9 @@ export function CartProvider({
     }
   }, [cart]);
 
-  // OPTIMIZATION: Use session from context instead of fetching independently
   useEffect(() => {
-    setResolvedUserId(userId ?? user?.id ?? null);
-  }, [userId, user?.id]);
-
-  useEffect(() => {
-    cart.setUserId(resolvedUserId ?? null);
-    const storedItems = cart.getCart();
-    setItems(storedItems);
-    setIsReady(true);
     didInitialValidation.current = false;
-    try {
-      const count = storedItems.reduce((sum, item) => sum + item.quantity, 0);
-      window.dispatchEvent(
-        new CustomEvent("cartUpdated", { detail: { count, items: storedItems } }),
-      );
-    } catch {
-      // ignore storage/event errors
-    }
-
-    const handleCartUpdate = (event: Event) => {
-      const customEvent = event as CustomEvent<{ count: number; items: CartItem[] }>;
-      // Update items from the event detail
-      if (customEvent.detail?.items) {
-        setItems(customEvent.detail.items);
-      }
-    };
-
-    window.addEventListener("cartUpdated", handleCartUpdate);
-    return () => window.removeEventListener("cartUpdated", handleCartUpdate);
-  }, [cart, resolvedUserId]);
+  }, [cart]);
 
   useEffect(() => {
     if (didInitialValidation.current || !isReady) {
@@ -115,13 +102,13 @@ export function CartProvider({
     }
     didInitialValidation.current = true;
     if (items.length > 0) {
-      refreshCart();
+      void refreshCart();
     }
   }, [isReady, items.length, refreshCart]);
 
   useEffect(() => {
     const handleOpenCart = () => {
-      refreshCart();
+      void refreshCart();
     };
 
     window.addEventListener("openCart", handleOpenCart);
@@ -131,7 +118,7 @@ export function CartProvider({
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        refreshCart();
+        void refreshCart();
       }
     };
 

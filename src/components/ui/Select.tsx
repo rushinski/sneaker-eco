@@ -80,6 +80,7 @@ export function RdkSelect({
         return;
       }
       setOpen(false);
+      setSearchQuery("");
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -90,6 +91,7 @@ export function RdkSelect({
       if (event.key === "Escape") {
         event.preventDefault();
         setOpen(false);
+        setSearchQuery("");
         buttonRef.current?.focus();
         return;
       }
@@ -118,6 +120,7 @@ export function RdkSelect({
         if (opt && !opt.disabled) {
           onChange(opt.value);
           setOpen(false);
+          setSearchQuery("");
           buttonRef.current?.focus();
         }
       }
@@ -132,23 +135,7 @@ export function RdkSelect({
   }, [open, activeIndex, onChange, filteredOptions]);
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
-    const idx = filteredOptions.findIndex((o) => o.value === value);
-    if (idx >= 0) {
-      setActiveIndex(idx);
-    } else if (filteredOptions.length > 0) {
-      setActiveIndex(0);
-    }
-  }, [filteredOptions, value, open]);
-
-  useEffect(() => {
-    if (!open) {
-      setSearchQuery("");
-      return;
-    }
-    if (searchable) {
+    if (open && searchable) {
       searchRef.current?.focus();
     }
   }, [open, searchable]);
@@ -161,7 +148,16 @@ export function RdkSelect({
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (open) {
+            setOpen(false);
+            setSearchQuery("");
+            return;
+          }
+          const selectedIndex = options.findIndex((option) => option.value === value);
+          setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+          setOpen(true);
+        }}
         className={[
           "w-full flex items-center justify-between gap-2",
           "bg-zinc-900 border border-zinc-800/70",
@@ -194,7 +190,10 @@ export function RdkSelect({
                 ref={searchRef}
                 type="text"
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  setActiveIndex(0);
+                }}
                 placeholder={searchPlaceholder}
                 className="w-full bg-zinc-900 text-white text-sm px-3 py-2 rounded border border-zinc-800/70 focus:outline-none focus:ring-2 focus:ring-red-600"
               />
@@ -221,6 +220,7 @@ export function RdkSelect({
                   }
                   onChange(opt.value);
                   setOpen(false);
+                  setSearchQuery("");
                   buttonRef.current?.focus();
                 }}
                 className={[
