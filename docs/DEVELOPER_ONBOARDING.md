@@ -127,3 +127,38 @@ npx supabase stop
 
 If startup fails, first confirm that Docker is running and that `doppler setup`
 shows project `realdealkickzsc` with config `dev`.
+
+## Feature branch to staging
+
+1. Create a feature branch from the latest `main`:
+
+   ```bash
+   git switch main
+   git pull --ff-only
+   git switch -c <short-feature-name>
+   ```
+
+2. Make the change, then run the checks in [Before committing](#before-committing).
+
+3. Commit, push the feature branch, and open a pull request into `main`:
+
+   ```bash
+   git add <changed-files>
+   git commit -m "<type>: <short description>"
+   git push -u origin <short-feature-name>
+   ```
+
+4. Wait for the pull request workflow to pass. It checks formatting, linting,
+   typechecking, and a production build. Address review feedback and failed checks on
+   the same feature branch.
+
+5. Merge the pull request into `main` after approval and passing checks. The merge
+   automatically starts the staging workflow, which:
+   - validates formatting, linting, and types;
+   - previews and applies pending Supabase migrations to staging;
+   - builds and deploys the application to Vercel staging;
+   - verifies the deployment through `/api/readyz`.
+
+The change is available on staging only after every staging job passes. If the
+workflow fails, open the failed GitHub Actions job, fix the cause on a feature branch,
+and submit another pull request.
