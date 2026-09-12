@@ -18,4 +18,3 @@ New developers should begin with the
 - Supabase Postgres + Auth (SSR helpers)
 - Upstash Redis (rate limiting; memory fallback in dev/test)
 - Tailwind CSS
-
